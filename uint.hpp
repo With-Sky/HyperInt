@@ -122,7 +122,6 @@ public:
     }
     friend ostream &operator<<(ostream &output,UltraInt &input);
     friend istream &operator>>(istream &input,UltraInt &output);
-    friend UltraInt abs(UltraInt input);
     friend bool operator==(const long long &input1,const UltraInt &input2);
     friend bool operator>(const long long &input1,const UltraInt &input2);
     friend bool operator>=(const long long &input1,const UltraInt &input2);
@@ -133,7 +132,11 @@ public:
     friend UltraInt operator*(const long long &input1,const UltraInt &input2);
     friend UltraInt operator/(const long long &input1,const UltraInt &input2);
     friend UltraInt operator%(const long long &input1,const UltraInt &input2);
+    friend UltraInt abs(UltraInt input);
     friend UltraInt half(const UltraInt &input);
+    friend void print(UltraInt &input);
+    friend void print(const long long &input);
+    friend void print(const char *input);
     bool operator==(const UltraInt &input)
     {
         if(len!=input.len)
@@ -570,9 +573,9 @@ public:
         *this=*this-1;
         return *this;
     }
-    void print()
+    void copy(char *str)
     {
-        cout << data << endl;
+        memcpy(str,data,len);
     }
 };
 ostream &operator<<(ostream &output,UltraInt &input)
@@ -666,5 +669,17 @@ UltraInt half(const UltraInt &input)
         tmp=((input.data[i]-'0')%2)*10;
     }
     return out;
+}
+void print(UltraInt &input)
+{
+    cout<<input.data;
+}
+void print(const long long &input)
+{
+    cout<<input;
+}
+void print(const char *input)
+{
+    cout<<input;
 }
 #endif
