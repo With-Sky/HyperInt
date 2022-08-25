@@ -1,46 +1,53 @@
-#ifndef HINT_HPP
-#define HINT_HPP
-
 #include <iostream>
 #include <future>
 #include <algorithm>
 #include <cstring>
 #include <cmath>
 #include <cstdlib>
+#include <cassert>
 
-#define UINT_8 unsigned char
-#define UINT_16 unsigned short
-#define UINT_32 unsigned int
-#define UINT_64 unsigned long long
-#define INT_32 int
-#define INT_64 long long
+#ifndef HINT_HPP
+#define HINT_HPP
 
-#define size_t_bits 64 //如果size_t不是64位需要修改程序
+#define UINT_8 uint8_t
+#define UINT_16 uint16_t
+#define UINT_32 uint32_t
+#define UINT_64 uint64_t
+#define INT_32 int32_t
+#define INT_64 int64_t
+
+#if SIZE_MAX == 18446744073709551615ull
+#define SIZE_T_BITS 64
+#elif SIZE_MAX == 4294967295
+#define SIZE_T_BITS 32
+#else
+#error "unknown"
+#endif
 #define SHORT_BIT 16
 #define INT_BIT 32
-#define LOG_INT_BIT 5
 #define INT16_0XFF UINT16_MAX
 #define INT32_0XFF UINT32_MAX
-#define INT32_0X01 (UINT32)1
-#define INT32_0X80 INT32_MIN
+#define INT32_0X01 (UINT_32)1
+#define INT32_0X80 0X80000000u
 #define INT32_0X7F INT32_MAX
-#define INT64_0x80 INT64_MIN
-#define INT64_0x7F INT64_MAX
-#define FFT_MIN 128
-#define FFT_MAX 512000
-#define PI 3.1415926535897932
+#define INT64_0X80 INT64_MIN
+#define INT64_0X7F INT64_MAX
+#define INT32_0X10 0X100000000ull
+#define FFT_MIN 64
+#define FFT_MAX 4096
+#define NTT_MIN 4920
+#define NTT_MAX 16777216ull // 2^24为ntt最大长度
+#define HINT_PI 3.1415926535897932384626433832795
 
-#define _MAX_(x, y) ((x) > (y) ? (x) : (y))
-#define _MIN_(x, y) ((x) < (y) ? (x) : (y))
+#define _MAX_(x, y) std::max(x, y) //((x) > (y) ? (x) : (y))
+#define _MIN_(x, y) std::min(x, y) //((x) < (y) ? (x) : (y))
 #define _NEG_(x) ((x) < 0)
 #define _ODD_(x) ((x)&1)
-#define _ABS_(x) ((x) < 0 ? (-(x)) : (x))
+#define _ABS_(x) std::abs(x) //((x) < 0 ? (-(x)) : (x))
 #define _TWICE_(x) ((x) << 1)
 #define _HALF_(x) ((x) >> 1)
 #define _SELFTWICE_(x) ((x) <<= 1)
 #define _SELFHALF_(x) ((x) >>= 1)
-#define _INT32REARY_(ptr, len) ptr = (UINT_32 *)realloc((ptr), (len) * sizeof(UINT_32))
-#define _ARYCOPY_(target, source, len) std::memcpy((target), (source), (len) * sizeof(*target))
 
 namespace hint
 {
@@ -50,8 +57,7 @@ namespace hint
         INT_64 neg_n_len = 0;
         size_t size = 0;
     };
-    //对复数的定义
-    struct Complex
+    struct Complex //对复数的定义
     {
         double real, imaginary;
         Complex()
@@ -68,30 +74,37 @@ namespace hint
             real = r;
             imaginary = i;
         }
-        Complex(UINT_32 n)
+        Complex(UINT_64 n) // n等分圆周的复数,即x^n=1的解中除x=1以外辐角最小的那个
         {
-            real = cos(2 * PI / n);
-            imaginary = sin(2 * PI / n);
+            real = cos(2 * HINT_PI / n);
+            imaginary = sin(2 * HINT_PI / n);
         }
-        Complex operator=(const Complex &input)
+        Complex operator=(Complex input)
         {
             real = input.real;
             imaginary = input.imaginary;
             return *this;
         }
-        Complex operator+(Complex input)
+        Complex operator+(Complex input) //复数加法
         {
             return Complex(real + input.real, imaginary + input.imaginary);
         }
-        Complex operator-(Complex input)
+        Complex operator-(Complex input) //复数减法
         {
             return Complex(real - input.real, imaginary - input.imaginary);
         }
-        Complex operator*(Complex input)
+        Complex operator*(Complex input) //复数乘法
         {
             return Complex(real * input.real - imaginary * input.imaginary, real * input.imaginary + imaginary * input.real);
         }
-        void console_out()
+        Complex operator/(Complex input) //复数除法
+        {
+            double tmp = input.real * input.real + input.imaginary * input.imaginary;
+            double re = real * input.real + imaginary * input.imaginary;
+            double img = imaginary * input.real - real * input.imaginary;
+            return Complex(re / tmp, img / tmp);
+        }
+        void console_out() //打印复数
         {
             std::cout << real;
             if (_NEG_(imaginary))
@@ -100,31 +113,124 @@ namespace hint
                 std::cout << "+" << imaginary << "i";
         }
     };
-    void fft(Complex *input, size_t n, bool is_ifft)
+    template <typename T>
+    T qpow(T m, UINT_64 n) //模板快速幂
+    {
+        T result = 1;
+        while (n > 0)
+        {
+            if (n & 1)
+            {
+                result = result * m;
+            }
+            m = m * m;
+            n >>= 1;
+        }
+        return result;
+    }
+    UINT_64 qpow(UINT_64 m, UINT_64 n, UINT_64 mod) //取模快速幂
+    {
+        UINT_64 result = 1;
+        while (n > 0)
+        {
+            if (n & 1)
+            {
+                result = result * m % mod;
+            }
+            m = m * m % mod;
+            n >>= 1;
+        }
+        return result;
+    }
+    UINT_64 gcd(UINT_64 a, UINT_64 b) //最大公因数
+    {
+        if (b == 0)
+        {
+            return a;
+        }
+        UINT_64 tmp = b;
+        b = a % b;
+        a = tmp;
+        while (b > 0)
+        {
+            tmp = b;
+            b = a % b;
+            a = tmp;
+        }
+        return a;
+    }
+    UINT_64 crt(UINT_64 *mods, UINT_64 *nums, size_t n) //中国剩余定理
+    {
+        UINT_64 result = 0, mod_product = 1;
+        for (size_t i = 0; i < n; i++)
+        {
+            mod_product *= mods[i];
+        }
+        for (size_t i = 0; i < n; i++)
+        {
+            UINT_64 mod = mods[i];
+            UINT_64 tmp = mod_product / mod;
+            UINT_64 inv = qpow(tmp, mod - 2, mod);
+            result += nums[i] * tmp * inv % mod_product;
+        }
+        return result % mod_product;
+    }
+    inline UINT_64 qcrt(UINT_64 num1, UINT_64 num2,
+                        UINT_64 mod1 = 167772161, UINT_64 mod2 = 469762049,
+                        UINT_64 inv1 = 104391568, UINT_64 inv2 = 130489458) //快速计算两模数的中国剩余定理
+    {
+        if (num1 > num2)
+        {
+            return ((num1 - num2) * inv2 % mod1) * mod2 + num2;
+        }
+        else
+        {
+            return ((num2 - num1) * inv1 % mod2) * mod1 + num1;
+        }
+    }
+    template <typename T>
+    inline T *ary_copy(T *target, const T *source, size_t len) //模板数组拷贝
+    {
+        return static_cast<T *>(std::memcpy(target, source, len * sizeof(T)));
+    }
+    template <typename T>
+    inline void ary_calloc(T *&ptr, size_t len) //模版数组分配内存且清零
+    {
+        ptr = static_cast<T *>(calloc(len, sizeof(T)));
+    }
+    template <typename T>
+    inline void ary_clr(T *ptr, size_t len) //模版数组清零
+    {
+        memset(ptr, 0, len * sizeof(T));
+    }
+    template <typename T>
+    inline T *ary_realloc(T *ptr, size_t len) //重分配空间
+    {
+        return static_cast<T *>(realloc(ptr, len * sizeof(T)));
+    }
+    void fft(Complex *input, size_t n, bool is_ifft) //快速傅里叶(逆)变换
     {
         size_t *rev = new size_t[n];
-        size_t log_n = 1;
-        Complex tmp, unit_omega, omega, tmp1, tmp2;
-        while ((1 << log_n) < n)
-        {
-            log_n++;
-        }
+        size_t log_n = static_cast<size_t>(log2(n));
         rev[0] = 0;
         for (size_t i = 1; i < n; i++)
-            rev[i] = (rev[i >> 1] >> 1) | ((i & 1) << (log_n - 1));
+        {
+            rev[i] = (rev[i >> 1] >> 1) | ((i & 1) << (log_n - 1)); //求rev交换数组
+        }
         for (size_t i = 0; i < n; i++)
         {
             if (i < rev[i])
             {
-                tmp = input[i];
+                Complex tmp = input[i];
                 input[i] = input[rev[i]];
                 input[rev[i]] = tmp;
             }
         }
         delete[] rev;
+        Complex unit_omega, omega, tmp1, tmp2;
         for (size_t rank = 1, gap; rank < n; _SELFTWICE_(rank))
         {
-            gap = rank << 1;
+            gap = _TWICE_(rank);
             unit_omega = Complex(gap);
             if (is_ifft)
             {
@@ -143,36 +249,415 @@ namespace hint
                 }
             }
         }
-        if (is_ifft)
+        if (is_ifft) //逆变换需除以n
         {
             for (size_t i = 0; i < n; i++)
-                input[i].real /= 1.0 * n;
+            {
+                input[i].real *= (1.0 / n);
+            }
         }
-    } //快速傅里叶变换
-    // HyperInt factori(UINT_32 input);
+    }
+    void ntt(UINT_64 *input, size_t n, bool is_intt, UINT_64 mod = 998244353, UINT_64 inv_g_root = 332748118) //快速数论变换
+    {
+        size_t *rev = new size_t[n];
+        size_t log_n = static_cast<size_t>(log2(n));
+        rev[0] = 0;
+        for (size_t i = 1; i < n; i++)
+        {
+            rev[i] = (rev[i >> 1] >> 1) | ((i & 1) << (log_n - 1));
+        }
+        for (size_t i = 0; i < n; i++)
+        {
+            if (i < rev[i])
+            {
+                UINT_64 tmp = input[i];
+                input[i] = input[rev[i]];
+                input[rev[i]] = tmp;
+            }
+        }
+        delete[] rev;
+        UINT_64 g_root = 3;
+        if (is_intt)
+        {
+            g_root = inv_g_root;
+        }
+        UINT_64 unit_omega, omega, tmp1, tmp2;
+        for (size_t rank = 1, gap; rank < n; _SELFTWICE_(rank))
+        {
+            gap = _TWICE_(rank);
+            unit_omega = qpow(g_root, (mod - 1) / gap, mod);
+            for (size_t begin = 0; begin < n; begin += gap)
+            {
+                omega = 1;
+                for (size_t pos = begin; pos < begin + rank; pos++)
+                {
+                    tmp1 = input[pos];
+                    tmp2 = (input[pos + rank] % mod) * (omega % mod) % mod;
+                    input[pos] = (tmp1 + tmp2) % mod;
+                    input[pos + rank] = (mod + tmp1 - tmp2) % mod;
+                    omega = omega * unit_omega % mod;
+                }
+            }
+        }
+        if (is_intt)
+        {
+            uint64_t inv = qpow(n, mod - 2, mod);
+            for (size_t i = 0; i < n; ++i)
+            {
+                input[i] = input[i] * inv % mod;
+            }
+        }
+    }
+    void fft_convolution(Complex *const fft_ary1, Complex *const fft_ary2, Complex *const out, size_t fft_len) //快速傅里叶变换卷积分
+    {
+        fft(fft_ary1, fft_len, false); //快速傅里叶变换
+        if (fft_ary1 != fft_ary2)
+        {
+            fft(fft_ary2, fft_len, false);
+        }
+        for (size_t i = 0; i < fft_len; i += 2)
+        {
+            out[i] = fft_ary1[i] * fft_ary2[i];
+            out[i + 1] = fft_ary1[i + 1] * fft_ary2[i + 1];
+        }                        //每一位相乘
+        fft(out, fft_len, true); //逆变换
+    }
+    void ntt_convolution(UINT_64 *const ntt_ary1, UINT_64 *const ntt_ary2, UINT_64 *const out, size_t ntt_len) //数论变换卷积分
+    {
+        const UINT_64 mod1 = 167772161, mod2 = 469762049;
+        const UINT_64 root_inv1 = 55924054, root_inv2 = 156587350;
+        UINT_64 *ntt_ary3 = new UINT_64[ntt_len];
+        ary_copy(ntt_ary3, ntt_ary1, ntt_len);
+        UINT_64 *ntt_ary4 = ntt_ary3;
+        if (ntt_ary1 != ntt_ary2)
+        {
+            ntt_ary4 = new UINT_64[ntt_len];
+            ary_copy(ntt_ary4, ntt_ary2, ntt_len);
+            ntt(ntt_ary2, ntt_len, false, mod1, root_inv1); //快速数论变换
+            ntt(ntt_ary4, ntt_len, false, mod2, root_inv2);
+        }
+        ntt(ntt_ary1, ntt_len, false, mod1, root_inv1); //快速数论变换
+        ntt(ntt_ary3, ntt_len, false, mod2, root_inv2);
+        for (size_t i = 0; i < ntt_len; i += 2)
+        {
+            ntt_ary1[i] = ntt_ary1[i] * ntt_ary2[i];
+            ntt_ary1[i + 1] = ntt_ary1[i + 1] * ntt_ary2[i + 1];
+            ntt_ary3[i] = ntt_ary3[i] * ntt_ary4[i];
+            ntt_ary3[i + 1] = ntt_ary3[i + 1] * ntt_ary4[i + 1];
+        }                                              //每一位相乘
+        ntt(ntt_ary1, ntt_len, true, mod1, root_inv1); //逆变换
+        ntt(ntt_ary3, ntt_len, true, mod2, root_inv2);
+        for (size_t i = 0; i < ntt_len; i += 2)
+        {
+            out[i] = qcrt(ntt_ary1[i], ntt_ary3[i]);
+            out[i + 1] = qcrt(ntt_ary1[i + 1], ntt_ary3[i + 1]);
+        } //使用中国剩余定理变换
+        delete[] ntt_ary3;
+        if (ntt_ary4 != ntt_ary3)
+        {
+            delete[] ntt_ary4;
+        }
+    }
+    template <typename T>
+    void trans_add(const T *in1, const T *in2, T *out, size_t len1, size_t len2, const INT_64 base = 100) //可计算多项式的加法,默认为100进制
+    {
+        size_t result_len = _MAX_(len1, len2) + 1;
+        INT_64 tmp = 0;
+        size_t pos1 = 0, pos2 = 0, count = 0;
+        while (count < result_len)
+        {
+            if (pos1 < len1)
+            {
+                tmp += in1[pos1];
+                pos1++;
+            }
+            if (pos2 < len2)
+            {
+                tmp += in2[pos2];
+                pos2++;
+            }
+            out[count] = tmp % base;
+            tmp /= base;
+            count++;
+        }
+    }
+    template <typename T>
+    void trans_mul(const T *in1, const T *in2, T *out, size_t len1, size_t len2, const INT_64 base = 100) //计算多项式的乘法
+    {
+        size_t out_len = len1 + len2;
+        size_t fft_len = 1ull << static_cast<UINT_16>(ceil(log2(out_len)));
+        hint::Complex *fft_in1 = new hint::Complex[fft_len];
+        hint::Complex *fft_in2 = new hint::Complex[fft_len];
+        size_t pos = 0, max_len = _MAX_(len1, len2);
+        while (pos < max_len) //放入复数组
+        {
+            if (pos < len1)
+            {
+                fft_in1[pos].real = in1[pos];
+            }
+            if (pos < len2)
+            {
+                fft_in2[pos].real = in2[pos];
+            }
+            pos++;
+        }
+        fft_convolution(fft_in1, fft_in2, fft_in1, fft_len);
+        UINT_64 tmp = 0;
+        pos = 0;
+        while (pos < out_len)
+        {
+            tmp += static_cast<UINT_64>(fft_in1[pos].real + 0.5);
+            out[pos] = tmp % base;
+            tmp /= base;
+            pos++;
+        } //整理每一位
+        delete[] fft_in1;
+        delete[] fft_in2;
+    }
+    template <typename T>
+    void trans_square(const T *in, T *out, size_t len, const INT_64 base = 100) //平方
+    {
+        size_t out_len = _TWICE_(len);
+        size_t fft_len = 1ull << static_cast<UINT_16>(ceil(log2(out_len)));
+        hint::Complex *fft_ary = new hint::Complex[fft_len];
+        size_t pos = 0;
+        while (pos < len) //放入复数组
+        {
+            fft_ary[pos].real = in[pos];
+            pos++;
+        }
+        fft_convolution(fft_ary, fft_ary, fft_ary, fft_len);
+        UINT_64 tmp = 0;
+        pos = 0;
+        while (pos < out_len)
+        {
+            tmp += static_cast<UINT_64>(fft_ary[pos].real + 0.5);
+            out[pos] = tmp % base;
+            tmp /= base;
+            pos++;
+        } //整理每一位
+        delete[] fft_ary;
+    }
+    template <typename T>
+    void fix_sub(const T *in1, const T *in2, T *out, size_t len1, size_t len2, size_t &out_len, const INT_64 base = INT32_0X10) //高精度小数相减
+    {
+        INT_64 tmp = 0;
+        size_t count = _MAX_(len1, len2);
+        out_len = count;
+        while (count > 0)
+        {
+            count--;
+            if (tmp < 0)
+            {
+                tmp = -1;
+            }
+            else
+            {
+                tmp = 0;
+            }
+            if (count < len1)
+            {
+                tmp += in1[count];
+            }
+            if (count < len2)
+            {
+                tmp -= in2[count];
+            }
+            out[count] = static_cast<T>((tmp + base) % base);
+        }
+        while (out[out_len - 1] == 0)
+        {
+            out_len--;
+        }
+    }
+    template <typename T>
+    void fix_twice(const T *in, T *out, size_t len, size_t &out_len, const INT_64 base = INT32_0X10) //高精度小数二倍
+    {
+        INT_64 tmp = 0, carry = 0;
+        size_t count = len;
+        while (count > 0)
+        {
+            count--;
+            tmp = in[count];
+            _SELFTWICE_(tmp);
+            tmp += carry;
+            out[count] = tmp % base;
+            carry = tmp / base;
+        }
+        out_len = len + 1;
+        if (out[out_len - 1] == 0)
+        {
+            out_len--;
+        }
+    }
+    void fix_square(const UINT_32 *in, UINT_32 *out, size_t len, size_t &result_len) //高精度小数平方
+    {
+        size_t out_len = _TWICE_(len);
+        size_t fft_len = 2ull << static_cast<UINT_16>(ceil(log2(out_len)));
+        Complex *fft_ary = new Complex[fft_len];
+        UINT_32 ary_tmp = 0;
+        size_t half_pos = 0, pos = 0;
+        //每一位分解为短整数后存入复数组
+        while (half_pos < len)
+        {
+            pos = _TWICE_(half_pos);
+            ary_tmp = in[half_pos];
+            fft_ary[pos].real = ary_tmp >> SHORT_BIT;
+            fft_ary[pos + 1].real = ary_tmp & INT16_0XFF;
+            half_pos++;
+        }
+        fft_convolution(fft_ary, fft_ary, fft_ary, fft_len); //卷积
+        UINT_64 tmp = 0;
+        pos = _TWICE_(out_len);
+        half_pos = out_len - 1;
+        while (half_pos > 0)
+        {
+            pos -= 2;
+            half_pos--;
+            tmp += static_cast<UINT_64>(fft_ary[pos].real + 0.5);
+            ary_tmp = static_cast<UINT_32>(tmp & INT16_0XFF);
+            tmp >>= SHORT_BIT;
+            tmp += static_cast<UINT_64>(fft_ary[pos - 1].real + 0.5);
+            ary_tmp += static_cast<UINT_32>((tmp & INT16_0XFF) << SHORT_BIT);
+            tmp >>= SHORT_BIT;
+            out[half_pos] = ary_tmp;
+        }
+        while (out[out_len - 1] == 0)
+        {
+            out_len--;
+        }
+        result_len = out_len;
+        delete[] fft_ary;
+    }
+    void mix_multiply(const UINT_32 *type1_ary, UINT_32 *type2_ary, UINT_32 *type1_out, size_t len1, size_t len2, size_t &result_len, bool is_fix_out, bool is_reverse = false) //高精度整数和小数相乘
+    {
+        if (is_reverse)
+        {
+            std::reverse(type2_ary, type2_ary + len2);
+        }
+        size_t out_len = len1 + len2;
+        size_t fft_len = 2ull << static_cast<UINT_16>(ceil(log2(out_len)));
+        Complex *fft_ary1 = new Complex[fft_len];
+        Complex *fft_ary2 = new Complex[fft_len];
+        UINT_32 ary_tmp = 0;
+        size_t half_pos = 0, pos = 0, max_len = _MAX_(len1, len2);
+        //每一位分解为短整数后存入复数组
+        while (half_pos < max_len)
+        {
+            if (half_pos < len1)
+            {
+                ary_tmp = type1_ary[half_pos];
+                fft_ary1[pos].real = ary_tmp & INT16_0XFF;
+                fft_ary1[pos + 1].real = ary_tmp >> SHORT_BIT;
+            }
+            if (half_pos < len2)
+            {
+                if (is_reverse)
+                {
+                    ary_tmp = type2_ary[half_pos];
+                    fft_ary2[pos].real = ary_tmp & INT16_0XFF;
+                    fft_ary2[pos + 1].real = ary_tmp >> SHORT_BIT;
+                }
+                else
+                {
+                    ary_tmp = type2_ary[half_pos];
+                    fft_ary2[pos].real = ary_tmp >> SHORT_BIT;
+                    fft_ary2[pos + 1].real = ary_tmp & INT16_0XFF;
+                }
+            }
+            pos += 2;
+            half_pos = _HALF_(pos);
+        }
+        fft_convolution(fft_ary1, fft_ary2, fft_ary1, fft_len); //卷积
+        if (is_fix_out)
+        {
+            UINT_64 tmp = 0;
+            pos = _TWICE_(out_len);
+            half_pos = out_len - 1;
+            while (half_pos > 0)
+            {
+                pos -= 2;
+                half_pos--;
+                tmp += static_cast<UINT_64>(fft_ary1[pos].real + 0.5);
+                ary_tmp = static_cast<UINT_32>(tmp & INT16_0XFF);
+                tmp >>= SHORT_BIT;
+                tmp += static_cast<UINT_64>(fft_ary1[pos - 1].real + 0.5);
+                ary_tmp += static_cast<UINT_32>((tmp & INT16_0XFF) << SHORT_BIT);
+                tmp >>= SHORT_BIT;
+                type1_out[half_pos] = ary_tmp;
+            }
+        }
+        else
+        {
+            UINT_64 tmp = 0;
+            half_pos = pos = 0;
+            while (half_pos < out_len)
+            {
+                tmp += static_cast<UINT_64>(fft_ary1[pos].real + 0.5);
+                ary_tmp = static_cast<UINT_32>(tmp & INT16_0XFF);
+                tmp >>= SHORT_BIT;
+                tmp += static_cast<UINT_64>(fft_ary1[pos + 1].real + 0.5);
+                ary_tmp += static_cast<UINT_32>(tmp << SHORT_BIT);
+                tmp >>= SHORT_BIT;
+
+                type1_out[half_pos] = ary_tmp;
+                half_pos++;
+                pos = _TWICE_(half_pos);
+            } //整理每一位
+        }
+        while (type1_out[out_len - 1] == 0)
+        {
+            out_len--;
+        }
+        result_len = out_len;
+        delete[] fft_ary1;
+        delete[] fft_ary2;
+    }
 }
 class HyperInt
 {
 private:
     hint::h_int data;
-    void change_length(size_t new_length)
+    void change_length(size_t new_length) //设置新的长度
     {
-        data.neg_n_len = (data.neg_n_len & INT32_0X80) | new_length;
-    } //设置新的长度
-    void set_true_len()
-    {
-        size_t t_len = length();
-        while (t_len > 0 && data.array[t_len - 1] == 0)
+        if (new_length > data.size)
         {
-            t_len--;
+            new_length = data.size;
         }
-        change_length(t_len);
+        data.neg_n_len = (data.neg_n_len & INT64_0X80) | new_length;
     }
-    void clear()
+    size_t generate_size(size_t new_size_input) const //生成1.5倍数组空间
     {
-        memset(data.array, 0, data.size * sizeof(*data.array));
-    } //清空
-    void quick_self_twice()
+        const size_t max = 1073741824; // 1G长度,最大4GB空间占用
+        if (new_size_input > max)
+        {
+            return max;
+        }
+        if (new_size_input <= 2)
+        {
+            return 2;
+        }
+        size_t size1 = 1ull << static_cast<UINT_16>(ceil(log2(new_size_input)));
+        size_t size2 = _HALF_(size1);
+        size2 = size2 + _HALF_(size2);
+        if (new_size_input <= size2)
+        {
+            return size2;
+        }
+        else
+        {
+            return size1;
+        }
+    }
+    void clear() //清空
+    {
+        hint::ary_clr(data.array, data.size);
+    }
+    void fill_element(UINT_32 element) //填充相同的元素
+    {
+        std::fill(data.array, data.array + length(), element);
+    }
+    void quick_self_twice() //快速左移一位,只能操作大小为2^n的数
     {
         size_t len_tmp = length();
         if (len_tmp > 0)
@@ -182,6 +667,11 @@ private:
             if (tmp == 0)
             {
                 len_tmp++;
+                if (len_tmp > data.size)
+                {
+                    return;
+                }
+                change_length(len_tmp);
                 data.array[len_tmp - 1] = 1;
             }
             else
@@ -189,8 +679,8 @@ private:
                 data.array[len_tmp - 1] = tmp;
             }
         }
-    } //快速自增为二倍
-    void quick_self_half()
+    }                      //快速自增为二倍
+    void quick_self_half() //快速右移一位,只能操作大小为2^n的数
     {
         size_t len_tmp = length();
         if (len_tmp > 0)
@@ -200,6 +690,11 @@ private:
             if (tmp == 0)
             {
                 len_tmp--;
+                if (len_tmp == 0)
+                {
+                    return;
+                }
+                change_length(len_tmp);
                 data.array[len_tmp - 1] = INT32_0X80;
             }
             else
@@ -207,78 +702,22 @@ private:
                 data.array[len_tmp - 1] = tmp;
             }
         }
-    } //快速自减为一半
-    HyperInt quick_twice()
+    }
+    HyperInt quick_twice() //将自身的二倍返回
     {
         HyperInt result(*this);
         result.quick_self_twice();
         result.set_true_len();
         return result;
     }
-    HyperInt quick_half()
+    HyperInt quick_half() //将自身的一半返回
     {
         HyperInt result(*this);
         result.quick_self_half();
         result.set_true_len();
         return result;
     }
-    HyperInt add(const HyperInt &input) const
-    {
-        HyperInt result;
-        size_t len1 = length(), len2 = input.length();
-        size_t result_len = _MAX_(len1, len2) + 1;
-        result.reset_size(result_len);
-        result.change_length(result_len);
-        INT_64 tmp = 0;
-        size_t pos1 = 0, pos2 = 0, count = 0;
-        while (count < result_len)
-        {
-            if (pos1 < len1)
-            {
-                tmp += data.array[pos1];
-                pos1++;
-            }
-            if (pos2 < len2)
-            {
-                tmp += input.data.array[pos2];
-                pos2++;
-            }
-            result.data.array[count] = tmp;
-            tmp >>= INT_BIT;
-            count++;
-        }
-        result.set_true_len();
-        return result;
-    } //基础加法
-    HyperInt sub(const HyperInt &input) const
-    {
-        HyperInt result;
-        size_t len1 = length(), len2 = input.length();
-        size_t result_len = _MAX_(len1, len2);
-        result.reset_size(result_len);
-        result.change_length(result_len);
-        INT_64 tmp = 0;
-        size_t pos1 = 0, pos2 = 0, count = 0;
-        while (count < result_len)
-        {
-            if (pos1 < len1)
-            {
-                tmp += data.array[pos1];
-                pos1++;
-            }
-            if (pos2 < len2)
-            {
-                tmp -= input.data.array[pos2];
-                pos2++;
-            }
-            result.data.array[count] = tmp;
-            tmp >>= INT_BIT;
-            count++;
-        }
-        result.set_true_len();
-        return result;
-    } //基础减法
-    HyperInt multiply(const HyperInt &input) const
+    HyperInt normal_multiply(const HyperInt &input) const //基础乘法
     {
         HyperInt result;
         if (equal_to_z() || input.equal_to_z())
@@ -295,11 +734,11 @@ private:
         {
             for (size_t pos2 = 0; pos2 < len2; pos2++)
             {
-                tmp = (UINT_64)data.array[pos1] * input.data.array[pos2];
+                tmp = static_cast<UINT_64>(data.array[pos1]) * input.data.array[pos2];
                 for (size_t pos3 = pos1 + pos2; pos3 < result_len; pos3++)
                 {
                     sum = tmp + result.data.array[pos3];
-                    result.data.array[pos3] = sum;
+                    result.data.array[pos3] = static_cast<UINT_32>(sum & INT32_0XFF);
                     if ((sum >> INT_BIT) > 0)
                     {
                         tmp = sum >> INT_BIT;
@@ -315,8 +754,45 @@ private:
         result.neg_sign(result_neg);
         result.set_true_len();
         return result;
-    } //普通乘法
-    HyperInt fft_multiply(HyperInt input) const
+    }
+    HyperInt normal_square() const //基础平方
+    {
+        HyperInt result;
+        if (equal_to_z())
+        {
+            return result;
+        }
+        size_t len = length();
+        size_t result_len = _TWICE_(len);
+        result.reset_size(result_len);
+        result.clear();
+        result.change_length(result_len);
+        UINT_64 tmp = 0, sum = 0;
+        for (size_t pos1 = 0; pos1 < len; pos1++)
+        {
+            for (size_t pos2 = 0; pos2 < len; pos2++)
+            {
+                tmp = static_cast<UINT_64>(data.array[pos1]) * data.array[pos2];
+                for (size_t pos3 = pos1 + pos2; pos3 < result_len; pos3++)
+                {
+                    sum = tmp + result.data.array[pos3];
+                    result.data.array[pos3] = static_cast<UINT_32>(sum & INT32_0XFF);
+                    if ((sum >> INT_BIT) > 0)
+                    {
+                        tmp = sum >> INT_BIT;
+                    }
+                    else
+                    {
+                        break;
+                    }
+                }
+            }
+        }
+        result.neg_sign(false);
+        result.set_true_len();
+        return result;
+    }
+    HyperInt fft_multiply(const HyperInt &input) const //快速傅里叶变换乘法
     {
         HyperInt result;
         if (equal_to_z() || input.equal_to_z())
@@ -324,159 +800,702 @@ private:
             return result;
         }
         size_t len1 = length(), len2 = input.length();
-        size_t out_len = len1 + len2, fft_len = 1;
+        size_t out_len = len1 + len2;
         result.reset_size(out_len);
         result.clear();
         result.change_length(out_len);
-        while (fft_len < _TWICE_(out_len))
-        {
-            _SELFTWICE_(fft_len);
-        }
-        hint::Complex *fft_in1 = new hint::Complex[fft_len];
-        hint::Complex *fft_in2 = new hint::Complex[fft_len];
-        hint::Complex *fft_out = new hint::Complex[fft_len];
+        size_t fft_len = 2ull << static_cast<UINT_16>(ceil(log2(out_len)));
+        hint::Complex *fft_ary1 = new hint::Complex[fft_len];
+        hint::Complex *fft_ary2 = new hint::Complex[fft_len];
         UINT_32 ary_tmp = 0;
-        size_t half_pos = 0, pos = 0;
+        size_t half_pos = 0, pos = 0, max_len = _MAX_(len1, len2);
         //每一位分解为短整数后存入复数组
-        while (pos < fft_len)
+        while (half_pos < max_len)
         {
-            half_pos = _HALF_(pos);
             if (half_pos < len1)
             {
                 ary_tmp = data.array[half_pos];
-                fft_in1[pos].real = ary_tmp & INT16_0XFF;
-                fft_in1[pos + 1].real = ary_tmp >> SHORT_BIT;
+                fft_ary1[pos].real = ary_tmp & INT16_0XFF;
+                fft_ary1[pos + 1].real = ary_tmp >> SHORT_BIT;
             }
             if (half_pos < len2)
             {
                 ary_tmp = input.data.array[half_pos];
-                fft_in2[pos].real = ary_tmp & INT16_0XFF;
-                fft_in2[pos + 1].real = ary_tmp >> SHORT_BIT;
-            }
-            if (half_pos >= _MAX_(len1, len2))
-            {
-                break;
+                fft_ary2[pos].real = ary_tmp & INT16_0XFF;
+                fft_ary2[pos + 1].real = ary_tmp >> SHORT_BIT;
             }
             pos += 2;
+            half_pos = _HALF_(pos);
         }
-        fft(fft_in1, fft_len, false); //快速傅里叶变换
-        fft(fft_in2, fft_len, false);
-#pragma omp parallel for
-        for (int i = 0; i < fft_len; i += 2)
-        {
-            fft_out[i] = fft_in1[i] * fft_in2[i];
-            fft_out[i + 1] = fft_in1[i + 1] * fft_in2[i + 1];
-        }                            //每一位相乘
-        fft(fft_out, fft_len, true); //逆变换
-        size_t fft_tlen = fft_len;
+        hint::fft_convolution(fft_ary1, fft_ary2, fft_ary1, fft_len);
         UINT_64 tmp = 0;
-        while (!(UINT_8)(fft_out[fft_tlen - 1].real + 0.5))
-        {
-            fft_tlen--;
-        }
-        pos = 0;
-        //整理每一位
+        half_pos = pos = 0;
         while (half_pos < out_len)
         {
-            half_pos = _HALF_(pos);
-            if (pos < fft_tlen)
-            {
-                tmp += fft_out[pos].real + 0.5;
-            }
-            if (_ODD_(pos))
-            {
-                ary_tmp += (UINT_32)tmp << SHORT_BIT;
-                result.data.array[half_pos] = ary_tmp;
-            }
-            else
-            {
-                ary_tmp = tmp & INT16_0XFF;
-            }
+            tmp += static_cast<UINT_64>(fft_ary1[pos].real + 0.5);
+            ary_tmp = static_cast<UINT_32>(tmp & INT16_0XFF);
             tmp >>= SHORT_BIT;
-            pos++;
-        }
-        delete[] fft_in1;
-        delete[] fft_in2;
-        delete[] fft_out;
+            tmp += static_cast<UINT_64>(fft_ary1[pos + 1].real + 0.5);
+            ary_tmp += static_cast<UINT_32>(tmp << SHORT_BIT);
+            tmp >>= SHORT_BIT;
+
+            result.data.array[half_pos] = ary_tmp;
+            half_pos++;
+            pos = _TWICE_(half_pos);
+        } //整理每一位
+
+        delete[] fft_ary1;
+        delete[] fft_ary2;
+
         result.set_true_len();
         bool result_neg = is_neg() ^ input.is_neg();
         result.neg_sign(result_neg);
         return result;
-    } //快速傅里叶变换乘法
+    }
+    HyperInt fft_square() const // fft平方计算
+    {
+        HyperInt result;
+        if (equal_to_z())
+        {
+            return result;
+        }
+        size_t len = length();
+        size_t out_len = _TWICE_(len);
+        result.reset_size(out_len);
+        result.clear();
+        result.change_length(out_len);
+        size_t fft_len = 2ull << static_cast<UINT_16>(ceil(log2(out_len)));
+        hint::Complex *fft_ary = new hint::Complex[fft_len];
+        UINT_32 ary_tmp = 0;
+        size_t half_pos = 0, pos = 0;
+        //每一位分解为短整数后存入复数组
+        while (half_pos < len)
+        {
+            pos = _TWICE_(half_pos);
+            ary_tmp = data.array[half_pos];
+            fft_ary[pos].real = ary_tmp & INT16_0XFF;
+            fft_ary[pos + 1].real = ary_tmp >> SHORT_BIT;
+            half_pos++;
+        }
+        hint::fft_convolution(fft_ary, fft_ary, fft_ary, fft_len); //卷积
+
+        UINT_64 tmp = 0;
+        half_pos = pos = 0;
+        while (half_pos < out_len)
+        {
+            tmp += static_cast<UINT_64>(fft_ary[pos].real + 0.5);
+            ary_tmp = static_cast<UINT_32>(tmp & INT16_0XFF);
+            tmp >>= SHORT_BIT;
+            tmp += static_cast<UINT_64>(fft_ary[pos + 1].real + 0.5);
+            ary_tmp += static_cast<UINT_32>(tmp << SHORT_BIT);
+            tmp >>= SHORT_BIT;
+
+            result.data.array[half_pos] = ary_tmp;
+            half_pos++;
+            pos = _TWICE_(half_pos);
+        } //整理每一位
+
+        delete[] fft_ary;
+        result.set_true_len();
+        return result;
+    }
+    HyperInt ntt_multiply(const HyperInt &input) const //快速数论变换乘法
+    {
+        HyperInt result;
+        if (equal_to_z() || input.equal_to_z())
+        {
+            return result;
+        }
+        const UINT_64 mod1 = 167772161, mod2 = 469762049;
+        const UINT_64 root_inv1 = 55924054, root_inv2 = 156587350;
+        size_t len1 = length(), len2 = input.length();
+        size_t out_len = len1 + len2;
+        result.reset_size(out_len);
+        result.clear();
+        result.change_length(out_len);
+
+        size_t ntt_len = 2ull << static_cast<UINT_16>(ceil(log2(out_len)));
+        UINT_64 *ntt_ary1 = new UINT_64[ntt_len];
+        UINT_64 *ntt_ary2 = new UINT_64[ntt_len];
+        hint::ary_clr(ntt_ary1, ntt_len);
+        hint::ary_clr(ntt_ary2, ntt_len);
+        UINT_32 ary_tmp = 0;
+        size_t half_pos = 0, pos = 0, max_len = _MAX_(len1, len2);
+        //每一位分解为短整数后存入复数组
+        while (half_pos < max_len)
+        {
+            if (half_pos < len1)
+            {
+                ary_tmp = data.array[half_pos];
+                ntt_ary1[pos] = ary_tmp & INT16_0XFF;
+                ntt_ary1[pos + 1] = ary_tmp >> SHORT_BIT;
+            }
+            if (half_pos < len2)
+            {
+                ary_tmp = input.data.array[half_pos];
+                ntt_ary2[pos] = ary_tmp & INT16_0XFF;
+                ntt_ary2[pos + 1] = ary_tmp >> SHORT_BIT;
+            }
+            pos += 2;
+            half_pos = _HALF_(pos);
+        }
+        hint::ntt_convolution(ntt_ary1, ntt_ary2, ntt_ary1, ntt_len);
+        UINT_64 tmp = 0;
+        half_pos = pos = 0;
+        while (half_pos < out_len)
+        {
+            tmp += ntt_ary1[pos];
+            ary_tmp = static_cast<UINT_32>(tmp & INT16_0XFF);
+            tmp >>= SHORT_BIT;
+            tmp += ntt_ary1[pos + 1];
+            ary_tmp += static_cast<UINT_32>(tmp << SHORT_BIT);
+            tmp >>= SHORT_BIT;
+
+            result.data.array[half_pos] = ary_tmp;
+            half_pos++;
+            pos = _TWICE_(half_pos);
+        } //整理每一位
+        delete[] ntt_ary1;
+        delete[] ntt_ary2;
+        result.set_true_len();
+        bool result_neg = is_neg() ^ input.is_neg();
+        result.neg_sign(result_neg);
+        return result;
+    }
+    HyperInt ntt_square() const //快速数论变换平方
+    {
+        HyperInt result;
+        if (equal_to_z())
+        {
+            return result;
+        }
+        const UINT_64 mod1 = 167772161, mod2 = 469762049;
+        const UINT_64 root_inv1 = 55924054, root_inv2 = 156587350;
+        size_t len = length();
+        size_t out_len = _TWICE_(len);
+        result.reset_size(out_len);
+        result.clear();
+        result.change_length(out_len);
+
+        size_t ntt_len = 2ull << static_cast<UINT_16>(ceil(log2(out_len)));
+        UINT_64 *ntt_ary = new UINT_64[ntt_len];
+        hint::ary_clr(ntt_ary, ntt_len);
+        UINT_32 ary_tmp = 0;
+        size_t half_pos = 0, pos = 0;
+        //每一位分解为短整数后存入数组
+        while (half_pos < len)
+        {
+            pos = _TWICE_(half_pos);
+            ary_tmp = data.array[half_pos];
+            ntt_ary[pos] = ary_tmp & INT16_0XFF;
+            ntt_ary[pos + 1] = ary_tmp >> SHORT_BIT;
+            half_pos++;
+        }
+        hint::ntt_convolution(ntt_ary, ntt_ary, ntt_ary, ntt_len);
+        UINT_64 tmp = 0;
+        half_pos = pos = 0;
+        while (half_pos < out_len)
+        {
+            tmp += ntt_ary[pos];
+            ary_tmp = static_cast<UINT_32>(tmp & INT16_0XFF);
+            tmp >>= SHORT_BIT;
+            tmp += ntt_ary[pos + 1];
+            ary_tmp += static_cast<UINT_32>(tmp << SHORT_BIT);
+            tmp >>= SHORT_BIT;
+
+            result.data.array[half_pos] = ary_tmp;
+            half_pos++;
+            pos = _TWICE_(half_pos);
+        } //整理每一位
+        delete[] ntt_ary;
+        result.set_true_len();
+        return result;
+    }
+    HyperInt karatsuba_multiply(const HyperInt &input) const // karatsuba乘法,速度较慢
+    {
+        HyperInt result;
+        if (equal_to_z() || input.equal_to_z())
+        {
+            return result;
+        }
+        size_t len1 = length(), len2 = input.length();
+        size_t result_len = len1 + len2;
+        if (result_len < 4)
+        {
+            return normal_multiply(input);
+        }
+        result.reset_size(result_len);
+        result.clear();
+        result.change_length(result_len);
+        size_t sub_len1, sub_len2, sub_len_public;
+        if (len1 > len2)
+        {
+            sub_len1 = _HALF_(len1);
+            sub_len_public = len1 - sub_len1;
+            sub_len2 = 0;
+            if (len2 > sub_len_public)
+            {
+                sub_len2 = len2 - sub_len_public;
+            }
+        }
+        else
+        {
+            sub_len2 = _HALF_(len2);
+            sub_len_public = len2 - sub_len2;
+            sub_len1 = 0;
+            if (len1 > sub_len_public)
+            {
+                sub_len1 = len1 - sub_len_public;
+            }
+        }
+        HyperInt sub_a = split(0, sub_len_public);
+        HyperInt sub_b = split(sub_len_public, sub_len1);
+        HyperInt sub_c = input.split(0, sub_len_public);
+        HyperInt sub_d = input.split(sub_len_public, sub_len2);
+
+        HyperInt sub_e = sub_a.karatsuba_multiply(sub_c);
+        HyperInt sub_f = sub_b.karatsuba_multiply(sub_d);
+        HyperInt sub_g = (sub_a + sub_b).karatsuba_multiply(sub_c + sub_d);
+
+        size_t count = 0, pos_1 = 0, pos_2 = 0, pos_3 = 0, pos_4 = 0, len_pub = sub_len_public;
+        size_t len_e = sub_e.length(), len_f = sub_f.length(), len_g = sub_g.length();
+        INT_64 tmp = 0;
+        while (count < len_pub)
+        {
+            if (pos_1 < len_e)
+            {
+                tmp += sub_e.data.array[pos_1];
+                pos_1++;
+            }
+            result.data.array[count] = static_cast<UINT_32>(tmp + INT32_0X10);
+            tmp >>= INT_BIT;
+            count++;
+        }
+        _SELFTWICE_(len_pub);
+        while (count < len_pub)
+        {
+            if (pos_1 < len_e)
+            {
+                tmp += sub_e.data.array[pos_1];
+                pos_1++;
+            }
+            if (pos_2 < len_g)
+            {
+                tmp += sub_g.data.array[pos_2];
+                pos_2++;
+            }
+            if (pos_3 < len_e)
+            {
+                tmp -= sub_e.data.array[pos_3];
+                pos_3++;
+            }
+            if (pos_4 < len_f)
+            {
+                tmp -= sub_f.data.array[pos_4];
+                pos_4++;
+            }
+            result.data.array[count] = static_cast<UINT_32>(tmp + INT32_0X10);
+            tmp >>= INT_BIT;
+            count++;
+        }
+        pos_1 = 0;
+        while (count < result_len)
+        {
+            if (pos_1 < len_f)
+            {
+                tmp += sub_f.data.array[pos_1];
+                pos_1++;
+            }
+            if (pos_2 < len_g)
+            {
+                tmp += sub_g.data.array[pos_2];
+                pos_2++;
+            }
+            if (pos_3 < len_e)
+            {
+                tmp -= sub_e.data.array[pos_3];
+                pos_3++;
+            }
+            if (pos_4 < len_f)
+            {
+                tmp -= sub_f.data.array[pos_4];
+                pos_4++;
+            }
+            result.data.array[count] = static_cast<UINT_32>(tmp + INT32_0X10);
+            tmp >>= INT_BIT;
+            count++;
+        }
+        result.set_true_len();
+        return result;
+    }
+    HyperInt karatsuba_square() const // karatsuba平方,速度较慢
+    {
+        HyperInt result;
+        if (equal_to_z())
+        {
+            return result;
+        }
+        size_t len = length();
+        size_t result_len = _TWICE_(len);
+        if (result_len < 4)
+        {
+            return normal_square();
+        }
+        result.reset_size(result_len);
+        result.clear();
+        result.change_length(result_len);
+        size_t sub_len, sub_len_public;
+        sub_len = _HALF_(len);
+        sub_len_public = len - sub_len;
+
+        HyperInt sub_a = split(0, sub_len_public);
+        HyperInt sub_b = split(sub_len_public, sub_len);
+
+        HyperInt sub_ab = sub_a.karatsuba_multiply(sub_b);
+        sub_a = sub_a.karatsuba_square();
+        sub_b = sub_b.karatsuba_square();
+        sub_ab.self_twice();
+
+        size_t count = 0, pos_1 = 0, pos_2 = 0, len_pub = sub_len_public;
+        size_t len_aa = sub_a.length(), len_bb = sub_b.length(), len_ab = sub_ab.length();
+        INT_64 tmp = 0;
+        while (count < len_pub)
+        {
+            if (pos_1 < len_aa)
+            {
+                tmp += sub_a.data.array[pos_1];
+                pos_1++;
+            }
+            result.data.array[count] = static_cast<UINT_32>(tmp & INT32_0XFF);
+            tmp >>= INT_BIT;
+            count++;
+        }
+        _SELFTWICE_(len_pub);
+        while (count < len_pub)
+        {
+            if (pos_1 < len_aa)
+            {
+                tmp += sub_a.data.array[pos_1];
+                pos_1++;
+            }
+            if (pos_2 < len_ab)
+            {
+                tmp += sub_ab.data.array[pos_2];
+                pos_2++;
+            }
+            result.data.array[count] = static_cast<UINT_32>(tmp & INT32_0XFF);
+            tmp >>= INT_BIT;
+            count++;
+        }
+        pos_1 = 0;
+        while (count < result_len)
+        {
+            if (pos_2 < len_ab)
+            {
+                tmp += sub_ab.data.array[pos_2];
+                pos_2++;
+            }
+            if (pos_1 < len_bb)
+            {
+                tmp += sub_b.data.array[pos_1];
+                pos_1++;
+            }
+            result.data.array[count] = static_cast<UINT_32>(tmp & INT32_0XFF);
+            tmp >>= INT_BIT;
+            count++;
+        }
+        result.set_true_len();
+        return result;
+    }
+    HyperInt newton_divide(const HyperInt &input) const //牛顿迭代法除法
+    {
+        assert(!input.equal_to_z());
+        HyperInt result;
+        if (abs_smaller(input) || equal_to_z())
+        {
+            return result;
+        }
+        size_t len1 = length(), len2 = input.length();
+        size_t out_len = len1 - len2 + 1;
+        result.reset_size(out_len);
+        result.clear();
+        result.change_length(out_len);
+        UINT_32 *input_rev = new UINT_32[len2];
+        hint::ary_copy(input_rev, input.data.array, len2);
+        std::reverse(input_rev, input_rev + len2);
+
+        UINT_32 *newton_ary = new UINT_32[len1];
+        UINT_32 *twice_newton_ary = new UINT_32[len1 + 1];
+        hint::ary_clr(newton_ary, len1);
+        newton_ary[1] = 1;
+        size_t newton_len = 2, twice_len = 2;
+        for (size_t i = 0; i < 100; i++) //暂定为100次
+        {
+            hint::fix_twice(newton_ary, twice_newton_ary, newton_len, twice_len, INT32_0X10);
+            hint::fix_square(newton_ary, newton_ary, newton_len, newton_len);
+            hint::mix_multiply(newton_ary, input_rev, newton_ary, newton_len, len2, newton_len, true, false);
+            hint::fix_sub(twice_newton_ary, newton_ary, newton_ary, twice_len, newton_len, newton_len, INT32_0X10);
+        }
+        UINT_32 *result_ary = new UINT_32[newton_len + len1];
+        hint::mix_multiply(data.array, newton_ary, result_ary, len1, newton_len, out_len, false, true);
+        /*
+        ...暂未完成
+        */
+        //拷贝结果
+        delete[] input_rev;
+        delete[] twice_newton_ary;
+        delete[] newton_ary;
+        delete[] result_ary;
+        return HyperInt();
+    }
+    HyperInt normal_divide(const HyperInt &input) const //模拟手算的除法
+    {
+        assert(!input.equal_to_z());
+        HyperInt result;
+        if (abs_smaller(input) || equal_to_z())
+        {
+            return result;
+        }
+        size_t len1 = length(), len2 = input.length();
+        if (len1 <= 2)
+        {
+            result = first_int64() / input.first_int64();
+            result.neg_sign(static_cast<bool>(is_neg() ^ input.is_neg()));
+            return result;
+        }
+        using namespace std;
+        size_t out_len = len1 - len2 + 1;
+        result.reset_size(out_len);
+        result.clear();
+        result.change_length(out_len);
+        HyperInt dividend(*this);
+        HyperInt sub;
+        size_t shift = 0, pos = 0;
+        UINT_64 tmp = 0, first_num2 = input.first_int64();
+        UINT_64 try_num = 0;
+        while (dividend.abs_larger(input))
+        {
+            shift = dividend.length() - len2;
+            UINT_64 first_num1 = dividend.first_int64();
+            if (first_num1 > first_num2)
+            {
+                tmp = first_num1 / first_num2;
+                sub = input * tmp;
+                if (dividend.abs_compare(sub, shift) < 0)
+                {
+                    tmp--;
+                    sub.add_sub_inplace(input, false);
+                }
+                dividend.add_sub_inplace(sub, false, shift);
+            }
+            else if (dividend.abs_compare(input, shift) < 0)
+            {
+                shift--;
+                double digit_3 = static_cast<double>(first_num1) * static_cast<double>(INT32_0X10);
+                tmp = static_cast<UINT_64>(digit_3 / first_num2);
+                sub = input * tmp;
+                if (dividend.abs_compare(sub, shift) < 0)
+                {
+                    sub.add_sub_inplace(input, false);
+                    tmp--;
+                }
+                dividend.add_sub_inplace(sub, false, shift);
+            }
+            else
+            {
+                dividend.add_sub_inplace(input, false, shift);
+                tmp = 1;
+            }
+            result.data.array[shift] = tmp;
+        }
+        result.neg_sign(static_cast<bool>(is_neg() ^ input.is_neg()));
+        result.set_true_len();
+        return result;
+    }
+    void to_base100(UINT_8 *result, size_t &result_len) const //转为100进制的数组方便打印和转字符串
+    {
+        size_t in_len = length();
+        size_t max_rank = 1ull << static_cast<UINT_16>(ceil(log2(in_len)) - 1);
+        const UINT_16 base_len = 5;                                     // 2^32转为100进制的长度为5
+        size_t unit_ary_num = static_cast<UINT_16>(log2(max_rank)) + 1; // 2^32,(2^32)^这样的个数
+
+        result_len = _TWICE_(max_rank) * base_len;
+        hint::ary_clr(result, result_len); //清零
+
+        size_t unit_ary_len = (_TWICE_(max_rank) - 1) * base_len;
+        UINT_8 *unit_ary = new UINT_8[unit_ary_len]; //用一个数组存储(2^32)^1,(2^32)^2,(2^32)^4...
+
+        UINT_64 tmp = INT32_0X10; // 2^32
+        size_t pos = 0;
+        while (pos < 5) //转100进制
+        {
+            unit_ary[pos] = tmp % 100;
+            tmp /= 100;
+            pos++;
+        }
+        for (size_t i = 0, offset = 0; i < unit_ary_num - 1; i++)
+        {
+            size_t len = (1ull << i) * base_len;
+            hint::trans_square(unit_ary + offset, unit_ary + offset + len, len, 100);
+            offset += len;
+        }
+        for (size_t i = 0; i < in_len; i++)
+        {
+            tmp = data.array[i];
+            pos = 0;
+            while (pos < 5)
+            {
+                result[i * base_len + pos] = tmp % 100;
+                tmp /= 100;
+                pos++;
+            }
+        }
+        pos = 0;
+        UINT_8 *tmp_product = new UINT_8[5];
+        for (size_t i = 0, offset = 0; i < unit_ary_num; i++)
+        {
+            size_t len = (1ull << i) * base_len;
+            size_t gap = _TWICE_(len);
+            pos = 0;
+            tmp_product = static_cast<UINT_8 *>(realloc(tmp_product, gap * sizeof(UINT_8)));
+            hint::ary_clr(tmp_product, gap);
+            while (pos < result_len)
+            {
+                hint::trans_mul(unit_ary + offset, result + pos + len, tmp_product, len, len, 100);
+                hint::trans_add(tmp_product, result + pos, tmp_product, gap, len, 100);
+                hint::ary_copy(result + pos, tmp_product, gap);
+                pos += gap;
+            }
+            offset += len;
+        }
+        while (!result[result_len - 1])
+        {
+            result_len--;
+        }
+        delete[] tmp_product;
+        delete[] unit_ary;
+    }
+
 public:
-    ~HyperInt()
+    HyperInt test() const
+    {
+        return normal_square();
+    }
+    HyperInt test1() const
+    {
+        return fft_square();
+    }
+    HyperInt test2() const
+    {
+        return ntt_square();
+    }
+    ~HyperInt() //析构函数
     {
         if (data.array != nullptr)
         {
             delete[] data.array;
             data.array = nullptr;
         }
-    } //析构函数
-    HyperInt()
+    }
+    HyperInt() //无参数构造
     {
+        neg_sign(false);
+        reset_size(2);
         change_length(0);
-        data.size = 2;
+        data.array[1] = data.array[0] = 0;
+    }
+    HyperInt(size_t new_length, UINT_32 num) //填充new_length个num进行构造
+    {
+        data.size = generate_size(new_length);
+        change_length(new_length);
         neg_sign(false);
         if (data.array != nullptr)
+        {
             delete[] data.array;
+        }
         data.array = new UINT_32[data.size];
-        data.array[1] = data.array[0] = 0;
-    } //无参数构造
-    HyperInt(const HyperInt &input)
+        fill_element(num);
+        set_true_len();
+    }
+    HyperInt(const HyperInt &input) // HyperInt拷贝构造
     {
         if (this != &input)
         {
-            change_length(input.length());
-            data.size = 2;
-            reset_size(length());
+            size_t len = input.length();
+            reset_size(len);
+            change_length(len);
             neg_sign(input.is_neg());
-            if (data.array != nullptr)
-                delete[] data.array;
-            data.array = new UINT_32[data.size];
-            _ARYCOPY_(data.array, input.data.array, length());
+            hint::ary_copy(data.array, input.data.array, len);
             set_true_len();
         }
-    } // HyperInt拷贝构造
-    HyperInt(HyperInt &&input)
+    }
+    HyperInt(HyperInt &&input) // HyperInt移动构造
     {
         if (this != &input)
         {
-            change_length(input.length());
             data.size = input.data.size;
+            change_length(input.length());
             neg_sign(input.is_neg());
             delete[] data.array;
             data.array = input.data.array;
             input.data.array = nullptr;
             set_true_len();
         }
-    } // HyperInt移动构造
-    HyperInt(INT_64 input)
+    }
+    HyperInt(UINT_64 input) // UINT_64参数构造
     {
-        change_length(2);
         data.size = 2;
-        neg_sign(_NEG_(input));
-        input = _ABS_(input);
-        if (data.array != nullptr)
-            delete[] data.array;
-        data.array = new UINT_32[data.size];
+        reset_size(2);
+        change_length(2);
+        neg_sign(false);
         data.array[0] = input & INT32_0XFF;
         data.array[1] = input >> INT_BIT;
         set_true_len();
-    } // INT_64参数构造
-    HyperInt(const std::string input)
+    }
+    HyperInt(INT_64 input) // INT_64参数构造
+    {
+        data.size = 2;
+        reset_size(2);
+        change_length(2);
+        neg_sign(_NEG_(input));
+        input = _ABS_(input);
+        data.array[0] = input & INT32_0XFF;
+        data.array[1] = input >> INT_BIT;
+        set_true_len();
+    }
+    HyperInt(UINT_32 input) // UINT_32参数构造
+    {
+        data.size = 2;
+        reset_size(2);
+        change_length(1);
+        neg_sign(false);
+        data.array[0] = input;
+        set_true_len();
+    }
+    HyperInt(INT_32 input) // INT_32参数构造
+    {
+        data.size = 2;
+        reset_size(2);
+        change_length(1);
+        neg_sign(_NEG_(input));
+        input = _ABS_(input);
+        data.array[0] = input;
+        set_true_len();
+    }
+    HyperInt(std::string &input) // string参数构造
     {
         string_in(input);
-    } // string参数构造
-    HyperInt(const char input[])
+    }
+    HyperInt(const char input[]) //字符串构造
     {
         char tmp = '0';
-        for (size_t pos = 0; input[pos] != 0; pos++)
+        for (size_t pos = 0; input[pos] != '\0'; pos++)
         {
             tmp = input[pos];
             if ('0' <= tmp && tmp <= '9')
             {
-                *this *= 10;
-                *this += ((INT_64)(tmp - '0'));
+                *this *= 10ull;
+                *this += (tmp - '0');
             }
         }
         if (input[0] == '-')
@@ -484,28 +1503,26 @@ public:
             neg_sign(true);
         }
     }
-    HyperInt &operator=(const HyperInt &input)
+
+    HyperInt &operator=(const HyperInt &input) // HyperInt拷贝赋值
     {
         if (this != &input)
         {
-            change_length(input.length());
-            data.size = 2;
-            reset_size(length());
+            size_t len = input.length();
+            reset_size(len);
+            change_length(len);
             neg_sign(input.is_neg());
-            if (data.array != nullptr)
-                delete[] data.array;
-            data.array = new UINT_32[data.size];
-            _ARYCOPY_(data.array, input.data.array, length());
+            hint::ary_copy(data.array, input.data.array, len);
             set_true_len();
         }
         return *this;
-    } // HyperInt拷贝赋值
-    HyperInt &operator=(HyperInt &&input)
+    }
+    HyperInt &operator=(HyperInt &&input) // HyperInt移动赋值
     {
         if (this != &input)
         {
-            change_length(input.length());
             data.size = input.data.size;
+            change_length(input.length());
             neg_sign(input.is_neg());
             delete[] data.array;
             data.array = input.data.array;
@@ -513,42 +1530,102 @@ public:
             set_true_len();
         }
         return *this;
-    } // HyperInt移动赋值
-    HyperInt &operator=(INT_64 input)
+    }
+    HyperInt &operator=(UINT_64 input) // UINT_64赋值
     {
-        change_length(2);
         data.size = 2;
-        neg_sign(_NEG_(input));
-        input = _ABS_(input);
-        if (data.array != nullptr)
-            delete[] data.array;
-        data.array = new UINT_32[data.size];
+        reset_size(2);
+        change_length(2);
+        neg_sign(false);
         data.array[0] = input & INT32_0XFF;
         data.array[1] = input >> INT_BIT;
         set_true_len();
         return *this;
-    } // longlong赋值
-    HyperInt &operator=(const std::string input)
+    }
+    HyperInt &operator=(INT_64 input) // INT_64赋值
+    {
+        data.size = 2;
+        reset_size(2);
+        change_length(2);
+        neg_sign(_NEG_(input));
+        input = _ABS_(input);
+        data.array[0] = input & INT32_0XFF;
+        data.array[1] = input >> INT_BIT;
+        set_true_len();
+        return *this;
+    }
+    HyperInt &operator=(UINT_32 input) // UINT_32赋值
+    {
+        data.size = 2;
+        reset_size(2);
+        change_length(1);
+        neg_sign(false);
+        data.array[0] = input;
+        set_true_len();
+        return *this;
+    }
+    HyperInt &operator=(INT_32 input) // INT_32赋值
+    {
+        data.size = 2;
+        reset_size(2);
+        change_length(1);
+        neg_sign(_NEG_(input));
+        input = _ABS_(input);
+        data.array[0] = input;
+        set_true_len();
+        return *this;
+    }
+    HyperInt &operator=(std::string &input) // string赋值
     {
         string_in(input);
         return *this;
-    } // string赋值
-
+    }
+    HyperInt &operator=(const char input[]) //字符串赋值
+    {
+        char tmp = '0';
+        for (size_t pos = 0; input[pos] != '\0'; pos++)
+        {
+            tmp = input[pos];
+            if ('0' <= tmp && tmp <= '9')
+            {
+                *this *= 10ull;
+                *this += (tmp - '0');
+            }
+        }
+        if (input[0] == '-')
+        {
+            neg_sign(true);
+        }
+        return *this;
+    }
     //基本操作
-    void neg_sign(bool neg)
+    void set_true_len() //去除前导0
+    {
+        size_t t_len = length();
+        while (t_len > 0 && data.array[t_len - 1] == 0)
+        {
+            t_len--;
+        }
+        change_length(t_len);
+    }
+    void neg_sign(bool neg) //设置符号是否为负
     {
         if (neg)
         {
-            data.neg_n_len = data.neg_n_len | INT64_0x80;
+            data.neg_n_len = data.neg_n_len | INT64_0X80;
         }
         else
         {
-            data.neg_n_len = data.neg_n_len & INT64_0x7F;
+            data.neg_n_len = data.neg_n_len & INT64_0X7F;
         }
     }
-    INT_64 div_mod(INT_64 divisor)
+    INT_64 div_mod(INT_64 divisor) //自身除以divisor的同时返回余数
     {
         //  lldiv_t div_tmp;
+        if (divisor == 0)
+        {
+            return to_int64();
+        }
         UINT_64 last_rem = 0, tmp = 0, rem_num = 0;
         bool result_neg = is_neg() ^ _NEG_(divisor);
         neg_sign(result_neg);
@@ -557,22 +1634,25 @@ public:
         {
             pos--;
             tmp = (last_rem << INT_BIT) + data.array[pos];
-            auto div_tmp = lldiv(tmp, divisor);      //一次性得到商和余数
-            data.array[pos] = (UINT_32)div_tmp.quot; //当前数为变商
-            last_rem = div_tmp.rem;                  //得到余数
+            auto div_tmp = lldiv(tmp, divisor);                   //一次性得到商和余数
+            data.array[pos] = static_cast<UINT_32>(div_tmp.quot); //当前数为变商
+            last_rem = div_tmp.rem;                               //得到余数
         }
         tmp = (last_rem << INT_BIT) + data.array[0];
         auto div_tmp = lldiv(tmp, divisor);
-        data.array[0] = (UINT_32)div_tmp.quot;
+        data.array[0] = static_cast<UINT_32>(div_tmp.quot);
         rem_num = div_tmp.rem;
         set_true_len();
         return rem_num;
     }
-    INT_64 mod(INT_64 divisor) const
+    INT_64 mod(INT_64 divisor) const //返回对divisor的余数
     {
         //  lldiv_t div_tmp;
-        UINT_64 last_rem = 0, tmp = 0, rem_num = 0;
-        bool result_neg = is_neg() ^ _NEG_(divisor);
+        if (divisor == 0)
+        {
+            return to_int64();
+        }
+        INT_64 last_rem = 0, tmp = 0, rem_num = 0;
         size_t pos = length();
         while (pos > 1)
         {
@@ -590,68 +1670,180 @@ public:
         }
         return rem_num;
     }
-    HyperInt power(UINT_64 n) const
+    HyperInt power(UINT_64 n) const //快速幂
     {
         HyperInt tmp(*this), result = 1;
         if (!_ODD_(n))
         {
             result.neg_sign(false);
         }
+        else
+        {
+            result.neg_sign(is_neg());
+        }
+        if (abs_equal(result))
+        {
+            return result;
+        }
         while (n)
         {
             if (n & 1)
             {
-                result = result * tmp;
+                result = tmp * result;
             }
-            tmp = tmp * tmp;
+            tmp = tmp.square();
             _SELFHALF_(n);
         }
         return result;
     }
-    bool is_neg() const
+    HyperInt square() const //求自身的平方
     {
-        return data.neg_n_len & INT64_0x80;
+        if (length() < 56)
+        {
+            return normal_square();
+        }
+        else if (length() <= FFT_MAX / 2)
+        {
+            return fft_square();
+        }
+        else
+        {
+            return ntt_square();
+        }
     }
-    size_t length() const
+    bool is_neg() const //返回符号是否为为负号
     {
-        return data.neg_n_len & INT64_0x7F;
+        return data.neg_n_len & INT64_0X80;
     }
-    size_t size() const
+    size_t length() const //返回长度
+    {
+        return data.neg_n_len & INT64_0X7F;
+    }
+    size_t size() const //返回分配的数组空间
     {
         return data.size;
     }
-    INT_64 to_int64() const
+    HyperInt split(size_t begin, size_t len) const //返回从下标begi开始长度为len的子数组
+    {
+        if (len == 0)
+        {
+            return HyperInt(0);
+        }
+        size_t data_len = length();
+        if (begin >= data_len)
+        {
+            INT_64 num = data.array[data_len - 1];
+            return HyperInt(num);
+        }
+        else if (len > data_len - begin)
+        {
+            len = data_len - begin;
+        }
+        HyperInt result;
+        result.reset_size(len);
+        result.change_length(len);
+        hint::ary_copy(result.data.array, data.array + begin, len);
+        result.set_true_len();
+        return result;
+    }
+    INT_64 to_int64() const //转INT_64
     {
         INT_64 out = 0;
         out = (data.array[1] & INT32_0X7F);
         out <<= INT_BIT;
         out += data.array[0];
         if (is_neg())
+        {
             out = -out;
+        }
         return out;
     }
-    std::string to_string() const
+    std::string to_string() const //转string,用10进制表示的字符串
     {
         if (equal_to_z())
-            return std::string("0");
-        std::string result;
-        HyperInt tmp(*this);
-        size_t pos = 0;
-        INT_64 rem_n = 0;
-        while (tmp.abs_larger(0ll))
         {
-            rem_n = tmp.div_mod(10);
-            result += rem_n + '0';
-            pos++;
+            return std::string("0");
         }
+        size_t in_len = length();
+        if (in_len == 1)
+        {
+            if (is_neg())
+            {
+                return std::string("-") + std::to_string(data.array[0]);
+            }
+            return std::to_string(data.array[0]);
+        }
+        if (in_len < 128)
+        {
+            char digits[3] = "";
+            std::string result_str;
+            HyperInt tmp(*this);
+            size_t pos = 0;
+            INT_64 rem_n = 0;
+            HyperInt zero;
+            while (tmp.abs_larger(zero))
+            {
+                rem_n = tmp.div_mod(100);
+                digits[0] = rem_n % 10 + '0';
+                digits[1] = rem_n / 10 + '0';
+                result_str += digits;
+                pos++;
+            }
+            if (result_str[result_str.size() - 1] == '0')
+            {
+                result_str.erase(result_str.end() - 1);
+            }
+            if (is_neg())
+            {
+                result_str += '-';
+            }
+            reverse(result_str.begin(), result_str.end());
+            return result_str;
+        }
+        size_t max_rank = 1ull << static_cast<UINT_16>(ceil(log2(in_len)) - 1);
+        const UINT_16 base_len = 5; // 2^32转为100进制的长度为5
+        size_t result_len = _TWICE_(max_rank) * base_len;
+        UINT_8 *result = new UINT_8[result_len]; //结果数组
+        to_base100(result, result_len);
+        char digits[3] = {};
+        std::string result_str;
         if (is_neg())
         {
-            result += '-';
+            result_str += '-';
         }
-        reverse(result.begin(), result.end());
-        return result;
+        result_str += std::to_string(result[result_len - 1]);
+        result_len--;
+        while (result_len > 0) //整理每一位将100进制转为十进制
+        {
+            result_len--;
+            digits[0] = result[result_len] / 10 + '0';
+            digits[1] = result[result_len] % 10 + '0';
+            result_str += digits;
+        }
+        delete[] result;
+        return result_str;
     }
-    void console_in()
+    void string_in(std::string &str) //输入十进制字符串
+    {
+        clear();
+        for (auto i : str)
+        {
+            if ('0' <= i && i <= '9')
+            {
+                *this *= 10ull;
+                *this += (i - '0');
+            }
+        }
+        if (str[0] == '-')
+        {
+            neg_sign(true);
+        }
+    }
+    // void string_in(const char input[])
+    // {
+    //     return;
+    // }
+    void console_in() //从控制台读入十进制值
     {
         clear();
         char tmp = '0';
@@ -660,40 +1852,27 @@ public:
         {
             if (tmp != '\n')
             {
-                *this *= 10;
-                *this += ((INT_64)(tmp - '0'));
+                *this *= 10ull;
+                *this += (tmp - '0');
             }
             tmp = getchar();
             if (head)
             {
                 if (tmp == '-')
+                {
                     neg = true;
+                }
                 head = false;
             }
         }
         neg_sign(neg);
     }
-    void string_in(std::string s)
-    {
-        clear();
-        char tmp = '0';
-        for (std::string::iterator i = s.begin(); i != s.end(); i++)
-        {
-            if ('0' <= *i && *i <= '9')
-            {
-                *this *= 10;
-                *this += ((INT_64)(*i - '0'));
-            }
-        }
-        if (s[0] == '-')
-        {
-            neg_sign(true);
-        }
-    }
-    void console_out_hex() const
+    void print_hex() const //向控制台打印十六进制值
     {
         if (equal_to_z())
+        {
             printf("0");
+        }
         else
         {
             if (is_neg())
@@ -708,7 +1887,7 @@ public:
             }
         }
     }
-    void console_out_dec() const
+    void classic_print() const //向控制台打印十进制值,传统算法
     {
         if (equal_to_z())
         {
@@ -719,10 +1898,10 @@ public:
         size_t pos = 0;
         UINT_8 *tmp_str = new UINT_8[5 * length()];
         INT_64 rem_n = 0;
-        while (tmp.abs_larger(0ll))
+        while (tmp.abs_larger(HyperInt()))
         {
             rem_n = tmp.div_mod(100);
-            tmp_str[pos] = rem_n;
+            tmp_str[pos] = static_cast<UINT_8>(rem_n);
             pos++;
         }
         if (is_neg())
@@ -738,22 +1917,173 @@ public:
         }
         delete[] tmp_str;
     }
-    int quick_mod() const
+    void quick_print() const //向控制台打印十进制值,快速算法
     {
-        size_t len = length();
-        UINT_64 sum = 0;
-        for (size_t i = 1; i < len; i++)
+        if (equal_to_z())
         {
-            UINT_32 tmp = data.array[i];
-            sum += tmp & INT32_0XFF;
-            sum += ((UINT_64)tmp >> INT_BIT);
+            putchar('0');
+            return;
         }
-        sum = (sum % 10) * 6 % 10;
-        sum += data.array[0];
-        sum = sum % 10;
-        return sum;
+        if (is_neg())
+        {
+            putchar('-');
+        }
+        if (length() == 1)
+        {
+            printf("%u", data.array[0]);
+            return;
+        }
+        size_t max_rank = 1ull << static_cast<UINT_16>(ceil(log2(length())) - 1);
+        const UINT_16 base_len = 5; // 2^32转为100进制的长度为5
+        size_t result_len = _TWICE_(max_rank) * base_len;
+        UINT_8 *result = new UINT_8[result_len]; //结果数组
+        to_base100(result, result_len);
+        printf("%d", result[result_len - 1]);
+        result_len--;
+        while (result_len > 0)
+        {
+            result_len--;
+            printf("%02d", result[result_len]);
+        }
+        delete[] result;
     }
-    HyperInt &self_half()
+    void print_dec() const //向控制台打印十进制值,取两种算法最快者
+    {
+        if (length() < 3300)
+        {
+            classic_print();
+        }
+        else
+        {
+            quick_print();
+        }
+    }
+    HyperInt add_sub(const HyperInt &input, bool is_add) const //基础加减法a=b.add_sub(c,ture)->a=b+c;a=b.add_sub(c,fasle)->a=b-c,(b>c);
+    {
+        HyperInt result;
+        size_t len1 = length(), len2 = input.length();
+        if (is_add)
+        {
+            size_t result_len = _MAX_(len1, len2) + 1;
+            result.reset_size(result_len);
+            result.change_length(result_len);
+            INT_64 tmp = 0;
+            size_t count = 0;
+            while (count < result_len)
+            {
+                if (count < len1)
+                {
+                    tmp += data.array[count];
+                }
+                if (count < len2)
+                {
+                    tmp += input.data.array[count];
+                }
+                result.data.array[count] = static_cast<UINT_32>(tmp & INT32_0XFF);
+                tmp >>= INT_BIT;
+                count++;
+            }
+        }
+        else
+        {
+            size_t result_len = _MAX_(len1, len2);
+            result.reset_size(result_len);
+            result.change_length(result_len);
+            INT_64 tmp = 0;
+            size_t count = 0;
+            while (count < result_len)
+            {
+                if (count < len1)
+                {
+                    tmp += data.array[count];
+                }
+                if (count < len2)
+                {
+                    tmp -= input.data.array[count];
+                }
+                result.data.array[count] = static_cast<UINT_32>(tmp + INT32_0X10);
+                tmp >>= INT_BIT;
+                count++;
+            }
+        }
+        result.set_true_len();
+        return result;
+    }
+    void add_sub_inplace(const HyperInt &input, bool is_add, const size_t shift = 0) //就地加减 a+=b;a-=b,a加/减去移位后的b，默认不移位
+    {
+        size_t len1 = length(), len2 = input.length() + shift;
+        if (is_add)
+        {
+            size_t result_len = _MAX_(len1, len2) + 1;
+            reset_size(result_len);
+            hint::ary_clr(data.array + len1, result_len - len1);
+            change_length(result_len);
+            INT_64 tmp = 0;
+            size_t count = shift;
+            while (count < result_len)
+            {
+                if (count < len1)
+                {
+                    tmp += data.array[count];
+                }
+                if (count < len2)
+                {
+                    tmp += input.data.array[count - shift];
+                }
+                data.array[count] = static_cast<UINT_32>(tmp & INT32_0XFF);
+                tmp >>= INT_BIT;
+                count++;
+            }
+        }
+        else
+        {
+            size_t result_len = _MAX_(len1, len2);
+            reset_size(result_len);
+            change_length(result_len);
+            INT_64 tmp = 0;
+            size_t count = shift;
+            while (count < result_len)
+            {
+                if (count < len1)
+                {
+                    tmp += data.array[count];
+                }
+                if (count - shift < len2)
+                {
+                    tmp -= input.data.array[count - shift];
+                }
+                data.array[count] = static_cast<UINT_32>(tmp + INT32_0X10);
+                tmp >>= INT_BIT;
+                count++;
+            }
+        }
+        set_true_len();
+    }
+    void sub_inplace(const HyperInt &input) //由减数调用,a.sub_inplace(b)->a=b-a;
+    {
+        size_t len1 = length(), len2 = input.length();
+        size_t result_len = _MAX_(len1, len2);
+        reset_size(result_len);
+        change_length(result_len);
+        INT_64 tmp = 0;
+        size_t count = 0;
+        while (count < result_len)
+        {
+            if (count < len2)
+            {
+                tmp += input.data.array[count];
+            }
+            if (count < len1)
+            {
+                tmp -= data.array[count];
+            }
+            data.array[count] = static_cast<UINT_32>(tmp + INT32_0X10);
+            tmp >>= INT_BIT;
+            count++;
+        }
+        set_true_len();
+    }
+    HyperInt &self_half() //自身右移一位
     {
         UINT_32 tmp1, tmp2 = 0;
         size_t pos = length();
@@ -767,40 +2097,46 @@ public:
         }
         set_true_len();
         return *this;
-    } // /2
-    HyperInt &self_twice()
+    }
+    HyperInt &self_twice() //自身左移一位
     {
-        UINT_32 tmp1, tmp2 = 0;
-        for (size_t pos = 0; pos < length(); pos++)
+        UINT_64 tmp = 0;
+        size_t len = length();
+        for (size_t pos = 0; pos < len; pos++)
         {
-            tmp1 = tmp2;
-            tmp2 = data.array[pos];
-            tmp1 = (tmp1 >> (INT_BIT - 1)) + (tmp2 << 1);
-            data.array[pos] = tmp1;
+            tmp += (static_cast<UINT_64>(data.array[pos]) << 1);
+            data.array[pos] = static_cast<UINT_32>(tmp);
+            tmp >>= INT_BIT;
         }
-        if (data.size > length())
+        if (tmp > 0)
         {
-            data.array[length()] = tmp2 >> (INT_BIT - 1);
-            change_length(length() + 1);
+            len++;
+            reset_size(len);
+            change_length(len);
+            data.array[len - 1] = INT32_0X01;
         }
         return *this;
-    } // *2
-    HyperInt half() const
+    }
+    HyperInt half() const //返回右移后的值
     {
         return r_shift(1);
-    } // /2
-    HyperInt twice() const
+    }
+    HyperInt twice() const //返回左移后的值
     {
         return l_shift(1);
-    } // *2
-    HyperInt r_shift(size_t n) const
+    }
+    HyperInt r_shift(size_t n) const //右移n位
     {
         if (n == 0)
+        {
             return *this;
+        }
         HyperInt result;
-        size_t shift = n >> LOG_INT_BIT;
+        size_t shift = n / 32;
         size_t offset = n % 32;
-        size_t len = length() - shift;
+        size_t len = length();
+        shift %= len;
+        len -= shift;
         UINT_32 tmp1, tmp2 = 0;
         result.reset_size(len);
         result.change_length(len);
@@ -814,18 +2150,21 @@ public:
         }
         result.set_true_len();
         return result;
-    } //右移函数
-    HyperInt l_shift(size_t n) const
+    }
+    HyperInt l_shift(size_t n) const //左移n位
     {
         if (n == 0)
+        {
             return *this;
+        }
         HyperInt result;
-        size_t shift = n >> LOG_INT_BIT;
+        size_t shift = n / 32;
         size_t offset = n % 32;
+        size_t len = length();
         UINT_32 tmp1 = 0, tmp2 = 0;
-        result.reset_size(length() + shift + 1);
+        result.reset_size(len + shift + 1);
         result.clear();
-        result.change_length(length() + shift + 1);
+        result.change_length(len + shift + 1);
         for (size_t pos = 0; pos < length(); pos++)
         {
             tmp1 = tmp2;
@@ -834,131 +2173,190 @@ public:
             result.data.array[pos + shift] = tmp1;
         }
         if (tmp2 >> (INT_BIT - offset) & offset)
-            result.data.array[length() + shift] = tmp2 >> (INT_BIT - offset);
+        {
+            result.data.array[len + shift] = tmp2 >> (INT_BIT - offset);
+        }
         else
+        {
             result.change_length(result.length() - 1);
+        }
         return result;
-    } //左移函数
-    void reset_size(size_t new_size)
+    }
+    void reset_size(size_t new_size_input) //重新设定长度不小于new_size,1.5倍长度算法,在change_len()之前调用
     {
-        if (_TWICE_(new_size) < new_size)
+        size_t size_tmp = generate_size(new_size_input);
+        if (data.array == nullptr)
         {
-            data.size = new_size;
+            data.size = size_tmp;
+            data.array = new UINT_32[data.size];
+            change_length(0);
         }
-        else if (new_size < 2)
+        else if (data.size != size_tmp)
         {
-            data.size = 2;
+            data.size = size_tmp;
+            data.array = hint::ary_realloc(data.array, data.size);
+            change_length(_MIN_(length(), data.size));
         }
-        else
-        {
-            size_t size_tmp = 2, half = 0, mid = 0;
-            while (size_tmp < new_size)
-            {
-                _SELFTWICE_(size_tmp);
-            }
-            half = _HALF_(size_tmp);
-            mid = _HALF_(size_tmp + half);
-            if (new_size > mid)
-            {
-                data.size = size_tmp;
-            }
-            else
-            {
-                data.size = mid;
-            }
-        }
-        _INT32REARY_(data.array, data.size);
-        change_length(_MIN_(data.size, length()));
-    } //重新设定长度不小于new_size，1.5倍长度算法
-    HyperInt abs() const
+    }
+    HyperInt abs() const //返回绝对值
     {
         HyperInt result(*this);
         result.neg_sign(false);
         return result;
     }
-    bool abs_larger(const HyperInt &input) const
+    UINT_32 first_int32() const
+    {
+        if (length() >= 1)
+        {
+            return data.array[length() - 1];
+        }
+        else
+        {
+            return 0;
+        }
+    }
+    UINT_64 first_int64() const
+    {
+        if (length() >= 2)
+        {
+            UINT_64 result = data.array[length() - 1];
+            result <<= INT_BIT;
+            result += data.array[length() - 2];
+            return result;
+        }
+        else
+        {
+            return static_cast<UINT_64>(first_int32());
+        }
+    }
+    INT_32 abs_compare(const HyperInt &input, INT_64 shift = 0) const //自身和input移位shift比较，大于返回1，小于返回-1，等于返回0
+    {
+#if SIZE_T_BITS == 64
+        INT_64 len1 = static_cast<INT_64>(length());
+        INT_64 len2 = static_cast<INT_64>(input.length()) + shift;
+#elif SIZE_T_BITS == 32
+        INT_32 len1 = static_cast<INT_32>(length());
+        INT_32 len2 = static_cast<INT_32>(input.length()) + shift;
+#else
+#error "unknown"
+#endif
+        if (len1 < len2)
+        {
+            return -1;
+        }
+        else if (len1 > len2)
+        {
+            return 1;
+        }
+        UINT_32 num1 = 0, num2 = 0;
+        size_t len = len1;
+        while (len > 0)
+        {
+            len--;
+            num1 = data.array[len];
+            num2 = input.data.array[len - shift];
+            if (num1 > num2)
+            {
+                return 1;
+            }
+            else if (num1 < num2)
+            {
+                return -1;
+            }
+        }
+        return 0;
+    }
+    bool abs_larger(const HyperInt &input) const //绝对值是否大于input
     {
         size_t t_len1 = length(), t_len2 = input.length();
         if (t_len1 > t_len2)
-            return true;
-        else if (t_len1 < t_len2)
-            return false;
-        else
         {
-            UINT_32 num1 = 0, num2 = 0;
-            while (t_len1 > 0)
-            {
-                t_len1--;
-                num1 = data.array[t_len1];
-                num2 = input.data.array[t_len1];
-                if (num1 > num2)
-                {
-                    return true;
-                }
-                else if (num1 < num2)
-                {
-                    return false;
-                }
-            }
+            return true;
+        }
+        else if (t_len1 < t_len2)
+        {
             return false;
         }
+
+        UINT_32 num1 = 0, num2 = 0;
+        while (t_len1 > 0)
+        {
+            t_len1--;
+            num1 = data.array[t_len1];
+            num2 = input.data.array[t_len1];
+            if (num1 > num2)
+            {
+                return true;
+            }
+            else if (num1 < num2)
+            {
+                return false;
+            }
+        }
+        return false;
     }
-    bool abs_smaller(const HyperInt &input) const
+    bool abs_smaller(const HyperInt &input) const //绝对值是否小于input
     {
         size_t t_len1 = length(), t_len2 = input.length();
         if (t_len1 < t_len2)
-            return true;
-        else if (t_len1 > t_len2)
-            return false;
-        else
         {
-            UINT_32 num1 = 0, num2 = 0;
-            while (t_len1 > 0)
-            {
-                t_len1--;
-                num1 = data.array[t_len1];
-                num2 = input.data.array[t_len1];
-                if (num1 < num2)
-                {
-                    return true;
-                }
-                else if (num1 > num2)
-                {
-                    return false;
-                }
-            }
+            return true;
+        }
+        else if (t_len1 > t_len2)
+        {
             return false;
         }
+        UINT_32 num1 = 0, num2 = 0;
+        while (t_len1 > 0)
+        {
+            t_len1--;
+            num1 = data.array[t_len1];
+            num2 = input.data.array[t_len1];
+            if (num1 < num2)
+            {
+                return true;
+            }
+            else if (num1 > num2)
+            {
+                return false;
+            }
+        }
+        return false;
     }
-    bool abs_equal(const HyperInt &input) const
+    bool abs_equal(const HyperInt &input) const //绝对值是否等于input
     {
+        if (this == &input)
+        {
+            return true;
+        }
         size_t t_len1 = length(), t_len2 = input.length();
         if (t_len1 != t_len2)
-            return false;
-        else
         {
-            while (t_len1 > 0)
-            {
-                t_len1--;
-                if (data.array[t_len1] != input.data.array[t_len1])
-                    return false;
-            }
-            return true;
+            return false;
         }
-    } //比较绝对值是否相等
-    bool equal_to_z() const
+        while (t_len1 > 0)
+        {
+            t_len1--;
+            if (data.array[t_len1] != input.data.array[t_len1])
+            {
+                return false;
+            }
+        }
+        return true;
+    }
+    bool equal_to_z() const //判定是否为零
     {
         return (0 == length());
-    } //判定是否为零
-    bool is_even() const
+    }
+    bool is_even() const //判断是否为偶数
     {
         if (length() == 0)
         {
             return true;
         }
-        return !(bool)data.array[0] & 1;
+        return !static_cast<bool>(data.array[0] & 1);
     }
-    bool is_odd() const
+    bool is_odd() const //判断是否为奇数
     {
         if (length() == 0)
         {
@@ -977,14 +2375,11 @@ public:
     bool operator<(const INT_64 &input) const;
     bool operator<=(const HyperInt &input) const;
     bool operator<=(const INT_64 &input) const;
-    // bool operator!();
     bool operator!() const;
     // operator bool();
 
     //友元函数
-    friend HyperInt add(hint::h_int in1, hint::h_int in2);
-    friend HyperInt quick_multiply(hint::h_int in1, hint::h_int in2);
-    friend HyperInt abs(HyperInt input);
+    friend HyperInt abs(const HyperInt &input);
     friend void print(const HyperInt &input);
 
     friend bool operator==(const INT_64 &input1, const HyperInt &input2);
@@ -999,23 +2394,29 @@ public:
     friend HyperInt operator/(const INT_64 &input1, const HyperInt &input2);
     friend HyperInt operator%(const INT_64 &input1, const HyperInt &input2);
 
-    friend HyperInt operator+=(INT_64 &input1, const HyperInt &input2);
-    friend HyperInt operator-=(INT_64 &input1, const HyperInt &input2);
-    friend HyperInt operator*=(INT_64 &input1, const HyperInt &input2);
-    friend HyperInt operator/=(INT_64 &input1, const HyperInt &input2);
-    friend HyperInt operator%=(INT_64 &input1, const HyperInt &input2);
+    friend INT_64 &operator+=(INT_64 &input1, const HyperInt &input2);
+    friend INT_64 &operator-=(INT_64 &input1, const HyperInt &input2);
+    friend INT_64 &operator*=(INT_64 &input1, const HyperInt &input2);
+    friend INT_64 &operator/=(INT_64 &input1, const HyperInt &input2);
+    friend INT_64 &operator%=(INT_64 &input1, const HyperInt &input2);
 
-    friend std::ostream &operator<<(std::ostream &output, HyperInt &input);
+    friend std::string to_string(const HyperInt &input);
+    friend std::ostream &operator<<(std::ostream &output, const HyperInt &input);
     friend std::istream &operator>>(std::istream &input, HyperInt &output);
+
+    friend HyperInt combination(UINT_64 n, UINT_64 m);
 
     //算术运算
     HyperInt operator+(const HyperInt &input) const;
+    HyperInt operator+(INT_64 input) const;
     HyperInt operator+() const;
 
     HyperInt operator-(const HyperInt &input) const;
+    HyperInt operator-(INT_64 input) const;
     HyperInt operator-() const;
 
     HyperInt operator*(const HyperInt &input) const;
+    HyperInt operator*(UINT_64 input) const;
     HyperInt operator*(INT_64 input) const;
 
     HyperInt operator/(const HyperInt &input) const;
@@ -1025,42 +2426,64 @@ public:
     INT_64 operator%(INT_64 input) const;
 
     HyperInt &operator+=(const HyperInt &input);
+
     HyperInt &operator-=(const HyperInt &input);
 
     HyperInt &operator*=(const HyperInt &input);
+    HyperInt &operator*=(UINT_64 input);
     HyperInt &operator*=(INT_64 input);
 
     HyperInt &operator/=(const HyperInt &input);
+    HyperInt &operator/=(INT_64 input);
+
     HyperInt &operator%=(const HyperInt &input);
+    HyperInt &operator%=(INT_64 input);
+
     HyperInt operator++(int);
     HyperInt &operator++();
     HyperInt operator--(int);
     HyperInt &operator--();
-    // HyperInt &div_ten(INT_64 &rem_num);
-    // HyperInt &div_h(INT_64 div_num, INT_64 &rem_num);
-    // HyperInt power(UINT_64 n) const;
+
+    HyperInt operator|(const HyperInt &input) const;
+    HyperInt operator&(const HyperInt &input) const;
+    HyperInt operator^(const HyperInt &input) const;
+    HyperInt &operator|=(const HyperInt &input);
+    HyperInt &operator&=(const HyperInt &input);
+    HyperInt &operator^=(const HyperInt &input);
 };
 //逻辑运算
 inline bool HyperInt::operator==(const HyperInt &input) const
 {
     if (is_neg() ^ input.is_neg())
+    {
         return false;
+    }
     else
+    {
         return abs_equal(input);
+    }
 }
 inline bool HyperInt::operator==(const INT_64 &input) const
 {
     if (is_neg() ^ _NEG_(input))
+    {
         return false;
+    }
     else
+    {
         return abs_equal(input);
+    }
 }
 bool HyperInt::operator>(const HyperInt &input) const
 {
     if (is_neg() ^ input.is_neg())
+    {
         return input.is_neg();
+    }
     else
+    {
         return is_neg() ^ abs_larger(input);
+    }
 }
 inline bool HyperInt::operator>(const INT_64 &input) const
 {
@@ -1074,12 +2497,16 @@ inline bool HyperInt::operator>=(const INT_64 &input) const
 {
     return !(*this < HyperInt(input));
 }
-bool HyperInt::operator<(const HyperInt &input) const
+inline bool HyperInt::operator<(const HyperInt &input) const
 {
     if (is_neg() ^ input.is_neg())
+    {
         return is_neg();
+    }
     else
+    {
         return is_neg() ^ abs_smaller(input);
+    }
 }
 inline bool HyperInt::operator<(const INT_64 &input) const
 {
@@ -1097,23 +2524,18 @@ inline bool HyperInt::operator!() const
 {
     return !(bool)length();
 }
-// inline HyperInt::operator bool()
-// {
-//     if(length()>2)
-//         return true;
-//     return(data.array[0]!=0||data.array[1]!=0);
-// }
+// inline HyperInt::operator bool();
 
 //友元函数
-HyperInt abs(HyperInt input)
+HyperInt abs(const HyperInt &input) //返回input的绝对值
 {
     HyperInt result(input);
     result.neg_sign(false);
     return result;
 }
-void print(HyperInt &input)
+void print(const HyperInt &input) //打印input
 {
-    input.console_out_dec();
+    input.print_dec();
 }
 bool operator==(const INT_64 &input1, const HyperInt &input2)
 {
@@ -1121,19 +2543,19 @@ bool operator==(const INT_64 &input1, const HyperInt &input2)
 }
 bool operator>(const INT_64 &input1, const HyperInt &input2)
 {
-    return input2 > input1;
+    return input2 < input1;
 }
 bool operator>=(const INT_64 &input1, const HyperInt &input2)
 {
-    return input2 >= input1;
+    return input2 <= input1;
 }
 bool operator<(const INT_64 &input1, const HyperInt &input2)
 {
-    return input2 < input1;
+    return input2 > input1;
 }
 bool operator<=(const INT_64 &input1, const HyperInt &input2)
 {
-    return input2 <= input1;
+    return input2 >= input1;
 }
 HyperInt operator+(const INT_64 &input1, const HyperInt &input2)
 {
@@ -1149,33 +2571,38 @@ HyperInt operator*(const INT_64 &input1, const HyperInt &input2)
 }
 HyperInt operator/(const INT_64 &input1, const HyperInt &input2)
 {
-    return input2 / input1;
+    return HyperInt(input1) / input2;
 }
 HyperInt operator%(const INT_64 &input1, const HyperInt &input2)
 {
-    return input2 % input1;
+    return HyperInt(input1) % input2;
 }
-HyperInt operator+=(INT_64 &input1, const HyperInt &input2)
+INT_64 &operator+=(INT_64 &input1, const HyperInt &input2)
 {
+
     return input1 += input2.to_int64();
 }
-HyperInt operator-=(INT_64 &input1, const HyperInt &input2)
+INT_64 &operator-=(INT_64 &input1, const HyperInt &input2)
 {
     return input1 -= input2.to_int64();
 }
-HyperInt operator*=(INT_64 &input1, const HyperInt &input2)
+INT_64 &operator*=(INT_64 &input1, const HyperInt &input2)
 {
     return input1 *= input2.to_int64();
 }
-HyperInt operator/=(INT_64 &input1, const HyperInt &input2)
+INT_64 &operator/=(INT_64 &input1, const HyperInt &input2)
 {
     return input1 /= input2.to_int64();
 }
-HyperInt operator%=(INT_64 &input1, const HyperInt &input2)
+INT_64 &operator%=(INT_64 &input1, const HyperInt &input2)
 {
     return input1 %= input2.to_int64();
 }
-std::ostream &operator<<(std::ostream &output, HyperInt &input)
+inline std::string to_string(const HyperInt &input)
+{
+    return input.to_string();
+}
+std::ostream &operator<<(std::ostream &output, const HyperInt &input)
 {
     output << input.to_string();
     return output;
@@ -1192,9 +2619,9 @@ std::istream &operator>>(std::istream &input, HyperInt &output)
 HyperInt HyperInt::operator+(const HyperInt &input) const
 {
     HyperInt result;
-    if (!is_neg() ^ input.is_neg())
+    if (!is_neg() ^ input.is_neg()) //是否同号
     {
-        result = add(input);
+        result = add_sub(input, true);
         result.neg_sign(is_neg());
         return result;
     }
@@ -1206,17 +2633,21 @@ HyperInt HyperInt::operator+(const HyperInt &input) const
         }
         else if (abs_larger(input))
         {
-            result = sub(input);
+            result = add_sub(input, false);
             result.neg_sign(is_neg());
             return result;
         }
         else
         {
-            result = input.sub(*this);
-            result.neg_sign(input.is_neg());
+            result = input.add_sub(*this, false);
+            result.neg_sign(!is_neg());
             return result;
         }
     }
+}
+HyperInt HyperInt::operator+(INT_64 input) const
+{
+    return *this + HyperInt(input);
 }
 inline HyperInt HyperInt::operator+() const
 {
@@ -1225,9 +2656,9 @@ inline HyperInt HyperInt::operator+() const
 HyperInt HyperInt::operator-(const HyperInt &input) const
 {
     HyperInt result;
-    if (is_neg() ^ input.is_neg())
+    if (is_neg() ^ input.is_neg()) //是否异号
     {
-        result = add(input);
+        result = add_sub(input, true);
         result.neg_sign(is_neg());
         return result;
     }
@@ -1239,17 +2670,21 @@ HyperInt HyperInt::operator-(const HyperInt &input) const
         }
         else if (abs_larger(input))
         {
-            result = sub(input);
+            result = add_sub(input, false);
             result.neg_sign(is_neg());
             return result;
         }
         else
         {
-            result = input.sub(*this);
-            result.neg_sign(input.is_neg());
+            result = input.add_sub(*this, false);
+            result.neg_sign(!is_neg());
             return result;
         }
     }
+}
+HyperInt HyperInt::operator-(INT_64 input) const
+{
+    return *this - HyperInt(input);
 }
 inline HyperInt HyperInt::operator-() const
 {
@@ -1257,21 +2692,40 @@ inline HyperInt HyperInt::operator-() const
     result.neg_sign(!is_neg());
     return result;
 }
-HyperInt HyperInt::operator*(const HyperInt &input) const
+inline HyperInt HyperInt::operator*(const HyperInt &input) const
 {
-    size_t min_len = _MIN_(length(), input.length());
-    if (min_len > FFT_MIN && min_len < FFT_MAX)
-    //if(true)
+    if (this == &input)
     {
-        return fft_multiply(input);
+        return square();
     }
     else
     {
-        return multiply(input);
+        size_t min_len = _MIN_(length(), input.length());
+        size_t max_len = _MAX_(length(), input.length());
+        if (min_len < FFT_MIN)
+        {
+            return normal_multiply(input);
+        }
+        else if (min_len + max_len < FFT_MAX)
+        {
+            return fft_multiply(input);
+        }
+        else if (min_len + max_len > NTT_MIN && min_len + max_len < NTT_MAX)
+        {
+            return ntt_multiply(input);
+        }
+        else
+        {
+            return normal_multiply(input);
+        }
     }
 }
-HyperInt HyperInt::operator*(INT_64 input) const
+HyperInt HyperInt::operator*(UINT_64 input) const
 {
+    if (input == 1)
+    {
+        return *this;
+    }
     HyperInt result;
     if (equal_to_z() || input == 0)
     {
@@ -1281,17 +2735,17 @@ HyperInt HyperInt::operator*(INT_64 input) const
     size_t result_len = len + 2;
     result.reset_size(result_len);
     result.change_length(result_len);
-    bool result_neg = is_neg() ^ _NEG_(input);
-    result.neg_sign(result_neg);
-    input = _ABS_(input);
-    UINT_32 tmp1, tmp2;
-    UINT_64 sum, input_num1, input_num2;
-    input_num1 = input & INT32_0XFF;
-    input_num2 = input >> INT_BIT;
+    result.neg_sign(is_neg());
+    UINT_32 tmp = 0, tmp1 = 0, tmp2 = 0;
+    UINT_64 sum1 = 0, sum2 = 0;
+
+    const UINT_64 input_num1 = input & INT32_0XFF;
+    const UINT_64 input_num2 = input >> INT_BIT;
+
     tmp2 = data.array[0];
-    sum = tmp2 * input_num1;
-    result.data.array[0] = sum & INT32_0XFF;
-    sum >>= INT_BIT;
+    sum1 = tmp2 * input_num1;
+    result.data.array[0] = sum1 & INT32_0XFF;
+    sum1 >>= INT_BIT;
     for (size_t pos = 1; pos < result_len; pos++)
     {
         tmp1 = tmp2;
@@ -1303,49 +2757,34 @@ HyperInt HyperInt::operator*(INT_64 input) const
         {
             tmp2 = 0;
         }
-        sum += input_num2 * tmp1 + input_num1 * tmp2;
-        result.data.array[pos] = sum & INT32_0XFF;
-        sum >>= INT_BIT;
+        sum1 += input_num2 * tmp1;
+        tmp = sum1 & INT32_0XFF;
+        sum2 += input_num1 * tmp2 + tmp;
+        tmp = sum2 & INT32_0XFF;
+        result.data.array[pos] = tmp;
+        sum1 >>= INT_BIT;
+        sum2 >>= INT_BIT;
     }
     result.set_true_len();
     return result;
 }
-HyperInt HyperInt::operator/(const HyperInt &input) const
+inline HyperInt HyperInt::operator*(INT_64 input) const
 {
-    if (!input)
-        throw "Can't divided by zero";
-    HyperInt result, mid, tmp;
-    if (abs_smaller(input) || equal_to_z())
-        return result;
-    else
+    bool result_neg = is_neg() ^ _NEG_(input);
+    input = std::abs(input);
+    HyperInt result;
+    if (equal_to_z() || input == 0)
     {
-        size_t len1 = length(), len2 = input.length(), i = 0;
-        tmp.reset_size(len1 - len1 + 1);
-        bool result_neg = is_neg() ^ input.is_neg();
-        result.neg_sign(result_neg);
-        tmp = 1;
-        while (!abs_smaller(input.l_shift(i)))
-        {
-            tmp.quick_self_twice();
-            i++;
-        }
-        result = tmp.quick_half();
-        mid = (result + tmp).half();
-        while (!result.abs_equal(mid))
-        {
-            if (abs_smaller(mid.multiply(input)))
-            {
-                tmp = mid;
-            }
-            else
-            {
-                result = mid;
-            }
-            mid = (result + tmp).half();
-        }
-        result.set_true_len();
         return result;
     }
+    result = *this * (static_cast<UINT_64>(input));
+    result.neg_sign(result_neg);
+    return result;
+}
+HyperInt HyperInt::operator/(const HyperInt &input) const
+{
+    return normal_divide(input);
+    // return newton_divide(input);
 }
 HyperInt HyperInt::operator/(INT_64 input) const
 {
@@ -1366,44 +2805,107 @@ INT_64 HyperInt::operator%(INT_64 input) const
 }
 HyperInt &HyperInt::operator+=(const HyperInt &input)
 {
-    *this = *this + input;
+    if (!is_neg() ^ input.is_neg()) //是否同号
+    {
+        add_sub_inplace(input, true);
+        neg_sign(is_neg());
+    }
+    else
+    {
+        if (abs_equal(input))
+        {
+            *this = HyperInt(0);
+        }
+        else if (abs_larger(input))
+        {
+            add_sub_inplace(input, false);
+            neg_sign(is_neg());
+        }
+        else
+        {
+            sub_inplace(input);
+            neg_sign(!is_neg());
+        }
+    }
     return *this;
 }
 HyperInt &HyperInt::operator-=(const HyperInt &input)
 {
-    *this = *this - input;
+    if (is_neg() ^ input.is_neg()) //是否异号
+    {
+        add_sub_inplace(input, true);
+        neg_sign(is_neg());
+    }
+    else
+    {
+        if (abs_equal(input))
+        {
+            *this = HyperInt(0);
+        }
+        else if (abs_larger(input))
+        {
+            add_sub_inplace(input, false);
+            neg_sign(is_neg());
+        }
+        else
+        {
+            sub_inplace(input);
+            neg_sign(!is_neg());
+        }
+    }
     return *this;
 }
 HyperInt &HyperInt::operator*=(const HyperInt &input)
 {
-    *this = *this * input;
+    if (this == &input)
+    {
+        *this = square();
+    }
+    else
+    {
+        *this = *this * input;
+    }
     return *this;
 }
 HyperInt &HyperInt::operator*=(INT_64 input)
 {
+    bool result_neg = is_neg() ^ _NEG_(input);
+    input = std::abs(input);
     if (equal_to_z() || input == 0)
     {
-        HyperInt();
+        *this = 0;
+        return *this;
+    }
+    *this *= (static_cast<UINT_64>(input));
+    neg_sign(result_neg);
+    return *this;
+}
+HyperInt &HyperInt::operator*=(UINT_64 input)
+{
+    if (input == 1)
+    {
+        return *this;
+    }
+    if (equal_to_z() || input == 0)
+    {
+        *this = 0;
         return *this;
     }
     size_t len = length();
-    if (data.size < len + 2)
-    {
-        reset_size(len + 2);
-    }
-    change_length(len + 2);
-    bool result_neg = is_neg() ^ _NEG_(input);
-    neg_sign(result_neg);
-    input = _ABS_(input);
-    UINT_32 tmp1, tmp2;
-    UINT_64 sum, input_num1, input_num2;
-    input_num1 = input & INT32_0XFF;
-    input_num2 = input >> INT_BIT;
+    size_t result_len = len + 2;
+    reset_size(result_len);
+    change_length(result_len);
+    UINT_32 tmp = 0, tmp1 = 0, tmp2 = 0;
+    UINT_64 sum1 = 0, sum2 = 0;
+
+    const UINT_64 input_num1 = input & INT32_0XFF;
+    const UINT_64 input_num2 = input >> INT_BIT;
+
     tmp2 = data.array[0];
-    sum = tmp2 * input_num1;
-    data.array[0] = sum & INT32_0XFF;
-    sum >>= INT_BIT;
-    for (size_t pos = 1; pos < len + 2; pos++)
+    sum1 = tmp2 * input_num1;
+    data.array[0] = sum1 & INT32_0XFF;
+    sum1 >>= INT_BIT;
+    for (size_t pos = 1; pos < result_len; pos++)
     {
         tmp1 = tmp2;
         if (pos < len)
@@ -1414,9 +2916,13 @@ HyperInt &HyperInt::operator*=(INT_64 input)
         {
             tmp2 = 0;
         }
-        sum += input_num2 * tmp1 + input_num1 * tmp2;
-        data.array[pos] = sum & INT32_0XFF;
-        sum >>= INT_BIT;
+        sum1 += input_num2 * tmp1;
+        tmp = sum1 & INT32_0XFF;
+        sum2 += input_num1 * tmp2 + tmp;
+        tmp = sum2 & INT32_0XFF;
+        data.array[pos] = tmp;
+        sum1 >>= INT_BIT;
+        sum2 >>= INT_BIT;
     }
     set_true_len();
     return *this;
@@ -1426,9 +2932,20 @@ HyperInt &HyperInt::operator/=(const HyperInt &input)
     *this = *this / input;
     return *this;
 }
+HyperInt &HyperInt::operator/=(INT_64 input)
+{
+    div_mod(input);
+    return *this;
+}
 HyperInt &HyperInt::operator%=(const HyperInt &input)
 {
-    *this = *this % input;
+    HyperInt tmp = *this / input;
+    *this = *this - (tmp * input);
+    return *this;
+}
+HyperInt &HyperInt::operator%=(INT_64 input)
+{
+    *this = HyperInt(div_mod(input));
     return *this;
 }
 HyperInt HyperInt::operator++(int)
@@ -1452,5 +2969,181 @@ HyperInt &HyperInt::operator--()
 {
     *this = *this - 1;
     return *this;
+}
+HyperInt HyperInt::operator|(const HyperInt &input) const
+{
+    size_t len1 = length(), len2 = input.length();
+    size_t result_len = _MAX_(len1, len2);
+    size_t min_len = _MIN_(len1, len2);
+    HyperInt result;
+    result.reset_size(result_len);
+    result.clear();
+    result.change_length(result_len);
+    size_t pos = 0;
+    while (pos < min_len)
+    {
+        result.data.array[pos] = data.array[pos] | input.data.array[pos];
+        pos++;
+    }
+    if (len1 > len2)
+    {
+        hint::ary_copy(result.data.array + min_len, data.array + min_len, len1 - len2);
+    }
+    else
+    {
+        hint::ary_copy(result.data.array + min_len, input.data.array + min_len, len2 - len1);
+    }
+    result.set_true_len();
+    return result;
+}
+HyperInt HyperInt::operator&(const HyperInt &input) const
+{
+    size_t len1 = length(), len2 = input.length();
+    size_t result_len = _MIN_(len1, len2);
+    HyperInt result;
+    result.reset_size(result_len);
+    result.clear();
+    result.change_length(result_len);
+    size_t pos = 0;
+    while (pos < result_len)
+    {
+        result.data.array[pos] = data.array[pos] & input.data.array[pos];
+        pos++;
+    }
+    result.set_true_len();
+    return result;
+}
+HyperInt HyperInt::operator^(const HyperInt &input) const
+{
+    size_t len1 = length(), len2 = input.length();
+    size_t result_len = _MAX_(len1, len2);
+    size_t min_len = _MIN_(len1, len2);
+    HyperInt result;
+    result.reset_size(result_len);
+    result.clear();
+    result.change_length(result_len);
+    size_t pos = 0;
+    while (pos < min_len)
+    {
+        result.data.array[pos] = data.array[pos] ^ input.data.array[pos];
+        pos++;
+    }
+    if (len1 > len2)
+    {
+        hint::ary_copy(result.data.array + min_len, data.array + min_len, len1 - len2);
+    }
+    else
+    {
+        hint::ary_copy(result.data.array + min_len, input.data.array + min_len, len2 - len1);
+    }
+    result.set_true_len();
+    return result;
+}
+HyperInt &HyperInt::operator|=(const HyperInt &input)
+{
+    size_t len1 = length(), len2 = input.length();
+    size_t result_len = _MAX_(len1, len2);
+    size_t min_len = _MIN_(len1, len2);
+    reset_size(result_len);
+    change_length(result_len);
+    size_t pos = 0;
+    while (pos < min_len)
+    {
+        data.array[pos] |= input.data.array[pos];
+        pos++;
+    }
+    if (len1 < len2)
+    {
+        hint::ary_copy(data.array + len1, input.data.array + len1, len2 - len1);
+    }
+    set_true_len();
+    return *this;
+}
+HyperInt &HyperInt::operator&=(const HyperInt &input)
+{
+    size_t len1 = length(), len2 = input.length();
+    size_t result_len = _MIN_(len1, len2);
+    if (len1 > len2)
+    {
+        reset_size(result_len);
+        change_length(result_len);
+    }
+    size_t pos = 0;
+    while (pos < result_len)
+    {
+        data.array[pos] &= input.data.array[pos];
+        pos++;
+    }
+    set_true_len();
+    return *this;
+}
+HyperInt &HyperInt::operator^=(const HyperInt &input)
+{
+    size_t len1 = length(), len2 = input.length();
+    size_t result_len = _MAX_(len1, len2);
+    size_t min_len = _MIN_(len1, len2);
+    reset_size(result_len);
+    change_length(result_len);
+    size_t pos = 0;
+    while (pos < min_len)
+    {
+        data.array[pos] ^= input.data.array[pos];
+        pos++;
+    }
+    if(len1<len2)
+    {
+        hint::ary_copy(data.array + min_len, input.data.array + min_len, len2 - len1);
+    }
+    set_true_len();
+    return *this;
+}
+HyperInt classic_factorial(UINT_64 end, UINT_64 start = 1) //累乘阶乘,可计算排列数A(n,m) n!/(n-m)!
+{
+    HyperInt result = 1;
+    if (end < start)
+    {
+        return result;
+    }
+    for (UINT_64 i = start; i <= end; i++)
+    {
+        result *= i;
+    }
+    result.set_true_len();
+    return result;
+}
+HyperInt factorial(UINT_64 end, UINT_64 start = 1) //递归拆分,可计算排列数A(n,m) n!/(n-m)!
+{
+    if (end < start)
+    {
+        return HyperInt(1);
+    }
+    UINT_64 len = end - start;
+    if (len < 4096)
+    {
+        HyperInt result = 1;
+        for (UINT_64 i = start; i <= end; i++)
+        {
+            result *= i;
+        }
+        return result;
+    }
+    UINT_64 mid = start + (len * 3 / 5);
+    return factorial(mid, start) * factorial(end, mid + 1);
+}
+HyperInt combination(UINT_64 n, UINT_64 m) // return C(n,m)组合数公式n!/((n-m)!m!)
+{
+    if (m > _HALF_(n))
+    {
+        return combination(n, n - m);
+    }
+    else if (n == 0 || m == 0)
+    {
+        return HyperInt(n);
+    }
+    else if (m >= n)
+    {
+        return HyperInt(1);
+    }
+    return factorial(n, (n - m + 1)) / factorial(m);
 }
 #endif
