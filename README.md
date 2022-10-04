@@ -1,6 +1,6 @@
 # 关于HyperInt
 
-## 概述：HyperInt是一个单头文件的打整数库，主要通过定义 HyperInt 类计算大整数。库内hint命名空间定义了常用数学函数：复数类，FFT/IFFT，NTT/INTT，中国剩馀定理CRT，最大公因数GCD，快速(带模除和不带模除)整数幂。
+## 概述：HyperInt是一个单头文件的大整数库，主要通过定义 HyperInt 类计算大整数。库内hint命名空间定义了常用数学函数：复数类，FFT/IFFT，NTT/INTT，中国剩馀定理CRT，最大公因数GCD，快速(带模除和不带模除)整数幂。
 
 ## 计算效率分析  
 ### 关于空间：  
