@@ -29,7 +29,7 @@
 #error "unknown"
 #endif
 
-#define MULTITHREAD
+//#define MULTITHREAD
 #define HINT_CHAR_BIT 8
 #define HINT_SHORT_BIT 16
 #define HINT_INT_BIT 32
