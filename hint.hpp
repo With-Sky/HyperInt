@@ -12,6 +12,10 @@
 #ifndef HINT_HPP
 #define HINT_HPP
 
+//取消对宏MULTITHREAD的注释即可开启多线程
+
+//#define MULTITHREAD
+
 #define UINT_8 uint8_t
 #define UINT_16 uint16_t
 #define UINT_32 uint32_t
@@ -29,7 +33,6 @@
 #error "unknown"
 #endif
 
-//#define MULTITHREAD
 #define HINT_CHAR_BIT 8
 #define HINT_SHORT_BIT 16
 #define HINT_INT_BIT 32
