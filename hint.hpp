@@ -29,7 +29,7 @@
 #error "unknown"
 #endif
 
-// #define MULTITHREAD
+#define MULTITHREAD
 #define HINT_CHAR_BIT 8
 #define HINT_SHORT_BIT 16
 #define HINT_INT_BIT 32
@@ -2742,7 +2742,7 @@ public:
     HyperInt &operator++();
     HyperInt operator--(int);
     HyperInt &operator--();
-
+    HyperInt operator~() const;
     HyperInt operator|(const HyperInt &input) const;
     HyperInt operator&(const HyperInt &input) const;
     HyperInt operator^(const HyperInt &input) const;
@@ -3208,6 +3208,19 @@ HyperInt &HyperInt::operator--()
 {
     *this -= 1;
     return *this;
+}
+HyperInt HyperInt::operator~() const
+{
+    size_t len = length();
+    HyperInt result;
+    result.reset_size(len);
+    result.change_length(len);
+    for (size_t i = 0; i < len; i++)
+    {
+        result.data.array[i] = ~data.array[i];
+    }
+    result.set_true_len();
+    return result;
 }
 HyperInt HyperInt::operator|(const HyperInt &input) const
 {
