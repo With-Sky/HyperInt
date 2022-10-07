@@ -3,6 +3,7 @@
 #include <thread>
 #include <atomic>
 #include <algorithm>
+#include <random>
 #include <cstring>
 #include <string>
 #include <cmath>
@@ -14,7 +15,7 @@
 
 //取消对宏MULTITHREAD的注释即可开启多线程
 
-//#define MULTITHREAD
+// #define MULTITHREAD
 
 #define UINT_8 uint8_t
 #define UINT_16 uint16_t
@@ -538,34 +539,6 @@ namespace hint
     {
         return input.square();
     }
-#ifdef MULTITHREAD
-    void to_base100_sub_prod(UINT_8 *unit_ary, UINT_8 *result, UINT_8 *tmp_product, size_t len, size_t pos, size_t offset, const size_t result_len)
-    {
-        static std::atomic<UINT_32> ths;
-        // const UINT_32 cores = std::thread::hardware_concurrency();
-        if (pos < result_len)
-        {
-            size_t gap = _TWICE_(len);
-            if (ths < hint::hint_threads)
-            {
-                ths++;
-                std::future<void> cur_thread = std::async(to_base100_sub_prod, unit_ary, result, tmp_product, len, pos + gap, offset, result_len);
-                hint::trans_mul(unit_ary + offset, result + pos + len, tmp_product, len, len, 100);
-                hint::trans_add(tmp_product, result + pos, tmp_product, gap, len, 100);
-                hint::ary_copy(result + pos, tmp_product, gap);
-                cur_thread.wait();
-                ths--;
-            }
-            else
-            {
-                hint::trans_mul(unit_ary + offset, result + pos + len, tmp_product, len, len, 100);
-                hint::trans_add(tmp_product, result + pos, tmp_product, gap, len, 100);
-                hint::ary_copy(result + pos, tmp_product, gap);
-                to_base100_sub_prod(unit_ary, result, tmp_product, len, pos + gap, offset, result_len);
-            }
-        }
-    }
-#endif
 }
 class HyperInt
 {
@@ -1322,6 +1295,70 @@ private:
         result.set_true_len();
         return result;
     }
+    HyperInt newton_sqrt() const
+    {
+        size_t len = length();
+        HyperInt result((len + 1) / 2, 0XFFFFFFFF);
+        const size_t times = 640;
+        for (size_t i = 0; i < times; i++)
+        {
+            HyperInt tmp = *this / result + result;
+            tmp.self_half();
+            if (!tmp.abs_smaller(result))
+            {
+                result = std::move(tmp);
+                break;
+            }
+            result = std::move(tmp);
+        }
+        if (abs_smaller(result.square()))
+        {
+            result--;
+        }
+        return result;
+    }
+    HyperInt normal_sqrt() const
+    {
+        size_t len = length();
+        HyperInt left, right;
+        left.reset_size(_HALF_(len) + 1);
+        left.clear();
+        left.change_length(_HALF_(len) + 1);
+        left.data.array[_HALF_(len) - 1] = 1;
+        left.set_true_len();
+        right.reset_size(_HALF_(len) + 1);
+        right.clear();
+        right.change_length(_HALF_(len) + 1);
+        right.data.array[_HALF_(len) - 1] = 2;
+        right.set_true_len();
+        while (!abs_smaller(right.square()))
+        {
+            right.quick_self_twice();
+            left.quick_self_twice();
+        }
+        while (left.abs_smaller(right))
+        {
+            HyperInt mid = (left + right).half();
+            if (left.abs_equal(mid))
+            {
+                return left;
+            }
+            INT_32 cmp = abs_compare(mid.square());
+            if (cmp > 0)
+            {
+                left = std::move(mid);
+            }
+            else if (cmp < 0)
+            {
+                right = std::move(mid);
+            }
+            else
+            {
+                return mid;
+            }
+        }
+        return left;
+    }
     void base10000_in(UINT_16 *input_ary, size_t in_len, bool is_neg = false) //由10000进制的数转换，方便10进制字符串转换
     {
         const UINT_64 target_base = HINT_INT16_0X10;
@@ -1459,6 +1496,14 @@ public:
     HyperInt karsq() const
     {
         return karatsuba_square();
+    }
+    HyperInt newtonrt() const
+    {
+        return newton_sqrt();
+    }
+    HyperInt normrt() const
+    {
+        return normal_sqrt();
     }
     HyperInt test(const HyperInt &in) const // nor
     {
@@ -1837,50 +1882,14 @@ public:
         {
             return HyperInt(static_cast<UINT_32>(sqrt(first_int32())));
         }
-        HyperInt left, right;
-        left.reset_size(_HALF_(len) + 1);
-        left.clear();
-        left.change_length(_HALF_(len) + 1);
-        left.data.array[_HALF_(len) - 1] = 1;
-        left.set_true_len();
-        right.reset_size(_HALF_(len) + 1);
-        right.clear();
-        right.change_length(_HALF_(len) + 1);
-        right.data.array[_HALF_(len) - 1] = 2;
-        right.set_true_len();
-        while (!abs_smaller(right.square()))
+        else if (len < 4)
         {
-            // std::cout << left << "\n";
-            // left.print_hex();
-            // std::cin.get();
-            right.quick_self_twice();
-            left.quick_self_twice();
+            return normal_sqrt();
         }
-        while (left.abs_smaller(right))
+        else
         {
-            // std::cout <<"l"<< left << "\n";
-            // std::cout <<"r"<< right << "\n";
-            // std::cin.get();
-            HyperInt mid = (left + right).half();
-            if (left.abs_equal(mid))
-            {
-                return left;
-            }
-            INT_32 cmp = abs_compare(mid.square());
-            if (cmp > 0)
-            {
-                left = std::move(mid);
-            }
-            else if (cmp < 0)
-            {
-                right = std::move(mid);
-            }
-            else
-            {
-                return mid;
-            }
+            return newton_sqrt();
         }
-        return left;
     }
     bool is_neg() const //返回符号是否为为负号
     {
@@ -2706,8 +2715,7 @@ public:
     friend std::ostream &operator<<(std::ostream &output, const HyperInt &input);
     friend std::istream &operator>>(std::istream &input, HyperInt &output);
 
-    friend HyperInt combination(UINT_64 n, UINT_64 m);
-
+    friend HyperInt randHyperInt(size_t len); //生成长度为len的随机数
     //算术运算
     HyperInt operator+(const HyperInt &input) const;
     HyperInt operator+(INT_64 input) const;
@@ -3515,5 +3523,31 @@ HyperInt combination(UINT_64 n, UINT_64 m) // return C(n,m)组合数公式n!/((n
         return HyperInt(1);
     }
     return factorial(n, (n - m + 1)) / factorial(m);
+}
+HyperInt randHyperInt(size_t len)
+{
+    HyperInt result;
+    if (len == 0)
+    {
+        return result;
+    }
+    result.reset_size(len);
+    result.change_length(len);
+    std::random_device seed;
+    std::default_random_engine rand_num(seed());
+    std::uniform_int_distribution<UINT_32> uni(1, UINT32_MAX);
+    result.data.array[len - 1] = uni(rand_num);
+    if (len == 1)
+    {
+        result.set_true_len();
+        return result;
+    }
+    uni = std::uniform_int_distribution<UINT_32>(0, UINT32_MAX);
+    for (size_t i = 0; i < len; i++)
+    {
+        result.data.array[i] = uni(rand_num);
+    }
+    result.set_true_len();
+    return result;
 }
 #endif
