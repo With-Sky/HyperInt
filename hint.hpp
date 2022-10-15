@@ -1880,7 +1880,7 @@ public:
         size_t len = length();
         if (len < 2)
         {
-            return HyperInt(static_cast<UINT_32>(sqrt(first_int32())));
+            return HyperInt(static_cast<UINT_64>(sqrt(first_int32())));
         }
         else if (len < 4)
         {
@@ -1912,7 +1912,7 @@ public:
     {
         if (len == 0)
         {
-            return HyperInt(0);
+            return HyperInt();
         }
         size_t data_len = length();
         if (begin >= data_len)
