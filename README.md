@@ -48,9 +48,9 @@ HyperInt通过一个32位整数数组来存储数字，即原生使用2^32进制
 `cout << a;//直接打印a的10进制数`  
 
 ### 附加函数
-`HyperInt a = factrial(10000);//a被赋值为10000!`  
-`HyperInt b = factorial(100,50);//b被赋值为50到100的连乘，即排列数排列数A(n,m） n!/(n-m)!`  
-`HyperInt c = ccombination(100,50);//c被赋值为组合数C(n,m) n!/((n-m)!m!)`  
+`HyperInt a = factrial(10000);//a被初始化为10000!`  
+`HyperInt b = factorial(100,50);//b被初始化为50到100的连乘，即排列数排列数A(n,m） n!/(n-m)!`  
+`HyperInt c = combination(100,50);//c被初始化为组合数C(n,m) n!/((n-m)!m!)`  
 
 ## 性能实测
 ### 测试平台  
