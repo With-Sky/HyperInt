@@ -744,11 +744,28 @@ namespace hint
         size_t len = str.size();
         for (size_t i = 0; i < len && i < 19; i++)
         {
-            result *= 10;
+            result *= base;
             char c = str[i];
-            if (c >= '0' && c <= '9')
+            hint::UINT_32 n = static_cast<hint::UINT_32>(c);
+            if (c > 'a')
             {
-                result += static_cast<hint::UINT_64>(c - '0');
+                n = n - 'a' + 10;
+            }
+            else if (c > 'A')
+            {
+                n = n - 'A' + 10;
+            }
+            else if (c > '0')
+            {
+                n -= '0';
+            }
+            else
+            {
+                n = 0;
+            }
+            if (n >= 0 && n < base)
+            {
+                result += static_cast<hint::UINT_64>(n);
             }
         }
         return result;
@@ -1766,7 +1783,7 @@ public:
     void set_true_len();                            //去除前导0
     void neg_sign(bool neg);                        //设置符号是否为负
     hint::INT_64 div_mod(hint::UINT_32 divisor);    //自身除以divisor的同时返回余数
-    hint::INT_64 mod(hint::UINT_32 divisor) const;   //返回对divisor的余数
+    hint::INT_64 mod(hint::UINT_32 divisor) const;  //返回对divisor的余数
     HyperInt power(hint::UINT_64 n) const;          //快速幂
     HyperInt square() const;                        //求自身的平方
     HyperInt square_root() const;                   //求自身的平方根
