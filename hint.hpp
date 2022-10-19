@@ -16,7 +16,7 @@
 #define HINT_HPP
 
 //取消对宏MULTITHREAD的注释即可开启多线程
-#define MULTITHREAD
+//#define MULTITHREAD
 
 #if SIZE_MAX == 18446744073709551615ull
 #define SIZE_T_BITS 64
