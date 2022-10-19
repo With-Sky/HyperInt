@@ -16,7 +16,7 @@
 #define HINT_HPP
 
 //取消对宏MULTITHREAD的注释即可开启多线程
-//#define MULTITHREAD
+// #define MULTITHREAD
 
 #if SIZE_MAX == 18446744073709551615ull
 #define SIZE_T_BITS 64
@@ -421,7 +421,7 @@ namespace hint
         hint::UINT_64 *ntt_ary3 = nullptr, *ntt_ary4 = nullptr;
         if (ntt_ary1 == ntt_ary2)
         {
-            ntt_ary3 = new hint::UINT_64[ntt_len];
+            ntt_ary3 = ntt_ary4 = new hint::UINT_64[ntt_len];
             ary_copy(ntt_ary3, ntt_ary1, ntt_len);
         }
         else
@@ -535,8 +535,8 @@ namespace hint
         else if (out_len <= 2097152)
         {
             size_t fft_len = 1ull << static_cast<hint::UINT_16>(ceil(log2(out_len)));
-            hint::Complex *fft_in1 = new hint::Complex[fft_len];
-            hint::Complex *fft_in2 = new hint::Complex[fft_len];
+            hint::Complex *fft_in1 = new hint::Complex[fft_len * 2];
+            hint::Complex *fft_in2 = fft_in1 + fft_len;
             com_ary_copy(fft_in1, in1, len1);
             com_ary_copy(fft_in2, in2, len2);
             fft_convolution(fft_in1, fft_in2, fft_in1, fft_len);
@@ -550,13 +550,12 @@ namespace hint
                 pos++;
             } //整理每一位
             delete[] fft_in1;
-            delete[] fft_in2;
         }
         else if (out_len <= 1073741824)
         {
             size_t ntt_len = 1ull << static_cast<hint::UINT_16>(ceil(log2(out_len)));
-            hint::UINT_64 *ntt_ary1 = new hint::UINT_64[ntt_len];
-            hint::UINT_64 *ntt_ary2 = new hint::UINT_64[ntt_len];
+            hint::UINT_64 *ntt_ary1 = new hint::UINT_64[ntt_len * 2];
+            hint::UINT_64 *ntt_ary2 = ntt_ary1 + ntt_len;
             for (size_t i = 0; i < len1; i++)
             {
                 ntt_ary1[i] = static_cast<hint::UINT_64>(in1[i]);
@@ -578,7 +577,6 @@ namespace hint
                 pos++;
             } //整理每一位
             delete[] ntt_ary1;
-            delete[] ntt_ary2;
         }
         else
         {
