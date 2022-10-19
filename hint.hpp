@@ -5,8 +5,8 @@
 #include <algorithm>
 #include <random>
 #include <stack>
-#include <cstring>
 #include <string>
+#include <cstring>
 #include <cmath>
 #include <cstdlib>
 #include <cassert>
@@ -16,7 +16,7 @@
 #define HINT_HPP
 
 //取消对宏MULTITHREAD的注释即可开启多线程
-// #define MULTITHREAD
+#define MULTITHREAD
 
 #if SIZE_MAX == 18446744073709551615ull
 #define SIZE_T_BITS 64
@@ -308,7 +308,7 @@ namespace hint
                     tmp2 = input[pos + rank] * omega;
                     input[pos] = tmp1 + tmp2;
                     input[pos + rank] = tmp1 - tmp2;
-                    omega *= unit_omega;
+                    omega = omega * unit_omega;
                 }
             }
         }
@@ -318,6 +318,7 @@ namespace hint
             for (size_t i = 0; i < fft_len; i++)
             {
                 input[i].real *= inv;
+                input[i].imaginary *= inv;
             }
         }
     }
@@ -417,9 +418,19 @@ namespace hint
     {
         constexpr hint::UINT_64 mod1 = 2013265921, mod2 = 2281701377;
         constexpr hint::UINT_64 root1 = 31, root2 = 3;
-        hint::UINT_64 *ntt_ary3 = new hint::UINT_64[ntt_len];
-        ary_copy(ntt_ary3, ntt_ary1, ntt_len);
-        hint::UINT_64 *ntt_ary4 = ntt_ary3;
+        hint::UINT_64 *ntt_ary3 = nullptr, *ntt_ary4 = nullptr;
+        if (ntt_ary1 == ntt_ary2)
+        {
+            ntt_ary3 = new hint::UINT_64[ntt_len];
+            ary_copy(ntt_ary3, ntt_ary1, ntt_len);
+        }
+        else
+        {
+            ntt_ary3 = new hint::UINT_64[ntt_len * 2];
+            ntt_ary4 = ntt_ary3 + ntt_len;
+            ary_copy(ntt_ary3, ntt_ary1, ntt_len);
+            ary_copy(ntt_ary4, ntt_ary2, ntt_len);
+        }
         std::function<void(hint::UINT_64 *, hint::UINT_64 *)> mul_func = [=](hint::UINT_64 *ary1, hint::UINT_64 *ary2)
         {
             for (size_t i = 0; i < ntt_len; i++)
@@ -435,8 +446,6 @@ namespace hint
             std::future<void> ntt_th2 = std::async(ntt, ntt_ary3, ntt_len, false, mod2, root2);
             if (ntt_ary1 != ntt_ary2)
             {
-                ntt_ary4 = new hint::UINT_64[ntt_len];
-                ary_copy(ntt_ary4, ntt_ary2, ntt_len);
                 std::future<void> ntt_th3 = std::async(ntt, ntt_ary2, ntt_len, false, mod1, root1);
                 std::future<void> ntt_th4 = std::async(ntt, ntt_ary4, ntt_len, false, mod2, root2);
                 ntt_th3.wait();
@@ -459,8 +468,6 @@ namespace hint
             ntt(ntt_ary3, ntt_len, false, mod2, root2);
             if (ntt_ary1 != ntt_ary2)
             {
-                ntt_ary4 = new hint::UINT_64[ntt_len];
-                ary_copy(ntt_ary4, ntt_ary2, ntt_len);
                 ntt(ntt_ary2, ntt_len, false, mod1, root1); //快速数论变换
                 ntt(ntt_ary4, ntt_len, false, mod2, root2);
             }
@@ -478,10 +485,6 @@ namespace hint
             out[i] = qcrt(ntt_ary1[i], ntt_ary3[i], mod1, mod2, inv1, inv2);
         } //使用中国剩余定理变换
         delete[] ntt_ary3;
-        if (ntt_ary4 != ntt_ary3)
-        {
-            delete[] ntt_ary4;
-        }
     }
     template <typename T1, typename T2, typename T3>
     void trans_add(const T1 *in1, const T2 *in2, T3 *out, size_t len1, size_t len2, const hint::INT_64 base = 100) //可计算多项式的加法,默认为100进制
@@ -1627,6 +1630,10 @@ public:
     {
         return newton_sqrt();
     }
+    HyperInt nttmul(const HyperInt &in)
+    {
+        return ntt_multiply(in);
+    }
     ~HyperInt() //析构函数
     {
         if (data.array != nullptr)
@@ -1829,50 +1836,62 @@ public:
     //逻辑运算
     bool operator==(const HyperInt &input) const;
     template <typename T>
-    bool operator==(const T &input) const;
+    bool operator==(T input) const;
 
     bool operator!=(const HyperInt &input) const;
     template <typename T>
-    bool operator!=(const T &input) const;
+    bool operator!=(T input) const;
 
     bool operator>(const HyperInt &input) const;
     template <typename T>
-    bool operator>(const T &input) const;
+    bool operator>(T input) const;
 
     bool operator>=(const HyperInt &input) const;
     template <typename T>
-    bool operator>=(const T &input) const;
+    bool operator>=(T input) const;
 
     bool operator<(const HyperInt &input) const;
     template <typename T>
-    bool operator<(const T &input) const;
+    bool operator<(T input) const;
 
     bool operator<=(const HyperInt &input) const;
     template <typename T>
-    bool operator<=(const T &input) const;
+    bool operator<=(T input) const;
 
     //友元函数
     friend HyperInt abs(const HyperInt &input);
     friend void print(const HyperInt &input);
 
-    friend bool operator==(const hint::INT_64 &input1, const HyperInt &input2);
-    friend bool operator!=(const hint::INT_64 &input1, const HyperInt &input2);
-    friend bool operator>(const hint::INT_64 &input1, const HyperInt &input2);
-    friend bool operator>=(const hint::INT_64 &input1, const HyperInt &input2);
-    friend bool operator<(const hint::INT_64 &input1, const HyperInt &input2);
-    friend bool operator<=(const hint::INT_64 &input1, const HyperInt &input2);
+    template <typename T>
+    friend bool operator>(T input1, const HyperInt &input2);
+    template <typename T>
+    friend bool operator>=(T input1, const HyperInt &input2);
+    template <typename T>
+    friend bool operator<(T input1, const HyperInt &input2);
+    template <typename T>
+    friend bool operator<=(T input1, const HyperInt &input2);
 
-    friend HyperInt operator+(const hint::INT_64 &input1, const HyperInt &input2);
-    friend HyperInt operator-(const hint::INT_64 &input1, const HyperInt &input2);
-    friend HyperInt operator*(const hint::INT_64 &input1, const HyperInt &input2);
-    friend HyperInt operator/(const hint::INT_64 &input1, const HyperInt &input2);
-    friend HyperInt operator%(const hint::INT_64 &input1, const HyperInt &input2);
+    template <typename T>
+    friend HyperInt operator+(T input1, const HyperInt &input2);
+    template <typename T>
+    friend HyperInt operator-(T input1, const HyperInt &input2);
+    template <typename T>
+    friend HyperInt operator*(T input1, const HyperInt &input2);
+    template <typename T>
+    friend HyperInt operator/(T input1, const HyperInt &input2);
+    template <typename T>
+    friend HyperInt operator%(T input1, const HyperInt &input2);
 
-    friend hint::INT_64 &operator+=(hint::INT_64 &input1, const HyperInt &input2);
-    friend hint::INT_64 &operator-=(hint::INT_64 &input1, const HyperInt &input2);
-    friend hint::INT_64 &operator*=(hint::INT_64 &input1, const HyperInt &input2);
-    friend hint::INT_64 &operator/=(hint::INT_64 &input1, const HyperInt &input2);
-    friend hint::INT_64 &operator%=(hint::INT_64 &input1, const HyperInt &input2);
+    template <typename T>
+    friend hint::INT_64 &operator+=(T input1, const HyperInt &input2);
+    template <typename T>
+    friend hint::INT_64 &operator-=(T input1, const HyperInt &input2);
+    template <typename T>
+    friend hint::INT_64 &operator*=(T input1, const HyperInt &input2);
+    template <typename T>
+    friend hint::INT_64 &operator/=(T input1, const HyperInt &input2);
+    template <typename T>
+    friend hint::INT_64 &operator%=(T input1, const HyperInt &input2);
 
     friend std::string to_string(const HyperInt &input);
     friend std::ostream &operator<<(std::ostream &output, const HyperInt &input);
@@ -2837,7 +2856,7 @@ inline bool HyperInt::operator==(const HyperInt &input) const
     }
 }
 template <typename T>
-inline bool HyperInt::operator==(const T &input) const
+inline bool HyperInt::operator==(T input) const
 {
     if (is_neg() != hint::is_neg(input))
     {
@@ -2860,7 +2879,7 @@ inline bool HyperInt::operator!=(const HyperInt &input) const
     }
 }
 template <typename T>
-inline bool HyperInt::operator!=(const T &input) const
+inline bool HyperInt::operator!=(T input) const
 {
     if (is_neg() != hint::is_neg(input))
     {
@@ -2883,7 +2902,7 @@ inline bool HyperInt::operator>(const HyperInt &input) const
     }
 }
 template <typename T>
-inline bool HyperInt::operator>(const T &input) const
+inline bool HyperInt::operator>(T input) const
 {
     if (is_neg() != hint::is_neg(input))
     {
@@ -2899,7 +2918,7 @@ inline bool HyperInt::operator>=(const HyperInt &input) const
     return !(*this < input);
 }
 template <typename T>
-inline bool HyperInt::operator>=(const T &input) const
+inline bool HyperInt::operator>=(T input) const
 {
     return !(*this < input);
 }
@@ -2915,7 +2934,7 @@ inline bool HyperInt::operator<(const HyperInt &input) const
     }
 }
 template <typename T>
-inline bool HyperInt::operator<(const T &input) const
+inline bool HyperInt::operator<(T input) const
 {
     if (is_neg() != hint::is_neg(input))
     {
@@ -2931,7 +2950,7 @@ inline bool HyperInt::operator<=(const HyperInt &input) const
     return !(*this > input);
 }
 template <typename T>
-inline bool HyperInt::operator<=(const T &input) const
+inline bool HyperInt::operator<=(T input) const
 {
     return !(*this > input);
 }
@@ -3494,70 +3513,80 @@ void print(const HyperInt &input) //打印input
         input.print_hex();
     }
 }
-bool operator!=(const hint::INT_64 &input1, const HyperInt &input2)
+
+template <typename T>
+inline bool operator>(T input1, const HyperInt &input2)
 {
-    return input2 != input1;
+    return HyperInt(input1) > input2;
 }
-bool operator==(const hint::INT_64 &input1, const HyperInt &input2)
+template <typename T>
+inline bool operator>=(T input1, const HyperInt &input2)
 {
-    return input2 == input1;
+    return HyperInt(input1) >= input2;
 }
-bool operator>(const hint::INT_64 &input1, const HyperInt &input2)
+template <typename T>
+inline bool operator<(T input1, const HyperInt &input2)
 {
-    return input2 < input1;
+    return HyperInt(input1) < input2;
 }
-bool operator>=(const hint::INT_64 &input1, const HyperInt &input2)
+template <typename T>
+inline bool operator<=(T input1, const HyperInt &input2)
 {
-    return input2 <= input1;
+    return HyperInt(input1) <= input2;
 }
-bool operator<(const hint::INT_64 &input1, const HyperInt &input2)
+
+template <typename T>
+inline HyperInt operator+(T input1, const HyperInt &input2)
 {
-    return input2 > input1;
+    return HyperInt(input1) + input2;
 }
-bool operator<=(const hint::INT_64 &input1, const HyperInt &input2)
+template <typename T>
+inline HyperInt operator-(T input1, const HyperInt &input2)
 {
-    return input2 >= input1;
+    return HyperInt(input1) + input2;
 }
-HyperInt operator+(const hint::INT_64 &input1, const HyperInt &input2)
+template <typename T>
+inline HyperInt operator*(T input1, const HyperInt &input2)
 {
-    return input2 + input1;
+    return HyperInt(input1) * input2;
 }
-HyperInt operator-(const hint::INT_64 &input1, const HyperInt &input2)
-{
-    return input2 - input1;
-}
-HyperInt operator*(const hint::INT_64 &input1, const HyperInt &input2)
-{
-    return input2 * input1;
-}
-HyperInt operator/(const hint::INT_64 &input1, const HyperInt &input2)
+template <typename T>
+inline HyperInt operator/(T input1, const HyperInt &input2)
 {
     return HyperInt(input1) / input2;
 }
-HyperInt operator%(const hint::INT_64 &input1, const HyperInt &input2)
+template <typename T>
+inline HyperInt operator%(T input1, const HyperInt &input2)
 {
     return HyperInt(input1) % input2;
 }
-hint::INT_64 &operator+=(hint::INT_64 &input1, const HyperInt &input2)
+
+template <typename T>
+inline T &operator+=(T input1, const HyperInt &input2)
 {
     return input1 += input2.to_int64();
 }
-hint::INT_64 &operator-=(hint::INT_64 &input1, const HyperInt &input2)
+template <typename T>
+inline T &operator-=(T input1, const HyperInt &input2)
 {
     return input1 -= input2.to_int64();
 }
-hint::INT_64 &operator*=(hint::INT_64 &input1, const HyperInt &input2)
+template <typename T>
+inline T &operator*=(T input1, const HyperInt &input2)
 {
     return input1 *= input2.to_int64();
 }
-hint::INT_64 &operator/=(hint::INT_64 &input1, const HyperInt &input2)
+template <typename T>
+inline T &operator/=(T input1, const HyperInt &input2)
 {
     return input1 /= input2.to_int64();
 }
-hint::INT_64 &operator%=(hint::INT_64 &input1, const HyperInt &input2)
+template <typename T>
+inline T &operator%=(T input1, const HyperInt &input2)
 {
     return input1 %= input2.to_int64();
 }
+
 inline std::string to_string(const HyperInt &input)
 {
     return input.to_string();
