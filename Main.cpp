@@ -19,6 +19,6 @@ int main(int argc, char **argv)
 	a = factorial(1000000);
 	w.stop();
 	double t3 = w.duration();
-	cout << t1 << "ms\t" << t2 << "ms\t" << t3 << "ms";
+	cout << t1 << "ms\t" << t2 << "ms\t" << t3 << "ms\n";
 	return 0;
 }
