@@ -647,7 +647,7 @@ namespace hint
         }
     }
     template <hint::UINT_32 BASE1, hint::UINT_32 BASE2, typename T, typename UNIT_T = hint::UINT_8>
-    void base_conversion(T *data_ary, size_t &len) // 256进制转为100进制的数组方便打印和转字符串
+    void base_conversion(T *data_ary, size_t &len) // 任意进制转换，BASE1进制转BASE2进制
     {
         if (len <= 1)
         {
@@ -746,19 +746,19 @@ namespace hint
         for (size_t i = 0; i < len && i < 19; i++)
         {
             result *= base;
-            char c = str[i];
-            hint::UINT_32 n = static_cast<hint::UINT_32>(c);
-            if (c > 'a')
+            char c = tolower(str[i]);
+            hint::UINT_64 n = static_cast<hint::UINT_64>(c);
+            if (isalnum(c))
             {
-                n = n - 'a' + 10;
-            }
-            else if (c > 'A')
-            {
-                n = n - 'A' + 10;
-            }
-            else if (c > '0')
-            {
-                n -= '0';
+                if (isalpha(c))
+                {
+                    n -= 'a';
+                    n += 10;
+                }
+                else
+                {
+                    n -= '0';
+                }
             }
             else
             {
@@ -766,7 +766,7 @@ namespace hint
             }
             if (n >= 0 && n < base)
             {
-                result += static_cast<hint::UINT_64>(n);
+                result += n;
             }
         }
         return result;
