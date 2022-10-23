@@ -51,7 +51,7 @@ public:
 		if (!is_stop)
 		{
 			stop();
-			is_stop = false;
+			is_stop = true;
 		}
 		return (double)tick / rate;
 	}
