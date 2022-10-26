@@ -1,6 +1,6 @@
 # 关于HyperInt
 
-## 概述：HyperInt是一个单头文件的大整数库，主要通过定义 HyperInt 类计算大整数。库内hint命名空间定义了常用数学函数：复数类，FFT/IFFT，NTT/INTT，中国剩馀定理CRT，最大公因数GCD，快速(带模除和不带模除)整数幂。
+## 概述：HyperInt是一个单头文件的大整数库，主要通过定义 HyperInt 类计算大整数。库内hint命名空间定义了常用数学函数：复数类，FFT/IFFT，NTT/INTT，中国剩馀定理CRT，快速(带模除和不带模除)整数幂。
 
 ## 计算效率分析  
 ### 关于空间：  
@@ -48,9 +48,9 @@ HyperInt通过一个32位整数数组来存储数字，即原生使用2^32进制
 `cout << a;//直接打印a的10进制数`  
 
 ### 附加函数
-`HyperInt a = factrial(10000);//a被赋值为10000!`  
-`HyperInt b = factorial(100,50);//b被赋值为50到100的连乘，即排列数排列数A(n,m） n!/(n-m)!`  
-`HyperInt c = ccombination(100,50);//c被赋值为组合数C(n,m) n!/((n-m)!m!)`  
+`HyperInt a = factrial(10000);//a被初始化为10000!`  
+`HyperInt b = factorial(100,50);//b被初始化为50到100的连乘，即排列数排列数A(n,m） n!/(n-m)!`  
+`HyperInt c = combination(100,50);//c被初始化为组合数C(n,m) n!/((n-m)!m!)`  
 
 ## 性能实测
 ### 测试平台  
@@ -65,11 +65,11 @@ HyperInt通过一个32位整数数组来存储数字，即原生使用2^32进制
 `体验	Windows 功能体验包 1000.22000.1042.0`  
 
 `编译器：gcc version 12.1.0 (x86_64-posix-seh-rev3, Built by MinGW-W64 project)`  
-`编译选项：-std=c++17 -O`
+`编译选项：-std=c++14 -O`
 
 编译运行Main.cpp 即计算10000!、100000！、1000000！  
-用时分别为58.585ms、156ms、4099.03ms  
-开启多线程时间为21.027ms、48.66ms、1459.68ms  
+用时分别为3.369ms、89.529ms、2368.69ms  
+开启多线程时间分别为3.342ms、37.459ms、679.134ms  
 
 使用Visual C++编译器速度会更快一点~  
 更多运算请使用者自行测试~  
