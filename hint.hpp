@@ -587,7 +587,6 @@ namespace hint
         {
             len2--;
         }
-        bool is_fft = false;
         if (out_len < 640)
         {
             UINT_64 *con_result = new UINT_64[out_len];
@@ -1608,11 +1607,9 @@ private:
         result.reset_size(out_len);
         result.clear();
         result.change_length(out_len);
-        HyperInt dividend(*this);
-        HyperInt sub;
-        size_t shift = 0, pos = 0;
+        HyperInt dividend(*this), sub;
+        size_t shift = 0;
         hint::UINT_64 tmp = 0, first_num2 = input.first_int64();
-        hint::UINT_64 try_num = 0;
         while (dividend.abs_compare(input) >= 0)
         {
             shift = dividend.length() - len2;
@@ -2150,8 +2147,8 @@ inline HyperInt HyperInt::power(hint::UINT_64 n) const //快速幂
 }
 inline HyperInt HyperInt::square() const //求自身的平方
 {
-    size_t len = length();
 #ifdef MULTITHREAD
+    size_t len = length();
     if (hint::hint_threads > 1 && len >= hint::HINT_FFT_LUT_MAX / 3)
     {
         return karatsuba_square();
@@ -3124,8 +3121,9 @@ inline HyperInt HyperInt::operator-() const
 
 inline HyperInt HyperInt::operator*(const HyperInt &input) const
 {
-    size_t len = std::max(length(), input.length());
+
 #ifdef MULTITHREAD
+    size_t len = std::max(length(), input.length());
     if (hint::hint_threads > 1 && len >= hint::HINT_FFT_LUT_MAX / 4)
     {
         return karatsuba_multiply(input);
