@@ -1149,7 +1149,6 @@ private:
         delete[] fft_ary1;
         result.set_true_len();
         result.neg_sign(is_neg() != input.is_neg());
-
         return result;
     }
     HyperInt fft_square() const // fft平方计算
@@ -1188,6 +1187,7 @@ private:
 
         delete[] fft_ary;
         result.set_true_len();
+        result.neg_sign(false);
         return result;
     }
     HyperInt ntt_multiply(const HyperInt &input) const //快速数论变换乘法
@@ -1279,6 +1279,7 @@ private:
         } //整理每一位
         delete[] ntt_ary;
         result.set_true_len();
+        result.neg_sign(false);
         return result;
     }
     HyperInt karatsuba_multiply(const HyperInt &input) const // karatsuba乘法,速度较慢
@@ -1410,6 +1411,7 @@ private:
             count++;
         }
         result.set_true_len();
+        result.neg_sign(is_neg() != input.is_neg());
         return result;
     }
     HyperInt karatsuba_square() const // karatsuba平方,速度较慢
@@ -1504,6 +1506,7 @@ private:
             count++;
         }
         result.set_true_len();
+        result.neg_sign(false);
         return result;
     }
     HyperInt inverse() const //求倒数
@@ -1553,14 +1556,9 @@ private:
         {
             ++dividend_inv;
         }
-        if (offset > 0)
-        {
-            result = (*this * dividend_inv).r_shift(len1 * hint::HINT_INT_BIT);
-        }
-        else
-        {
-            result = (*this * dividend_inv).r_shift(len2 * hint::HINT_INT_BIT * 2);
-        }
+
+        result = (*this * dividend_inv).r_shift(std::max(len1, len2 * 2) * hint::HINT_INT_BIT);
+
         HyperInt divisor_maybe = (result + 1) * input;
         while (abs_compare(divisor_maybe) >= 0)
         {
@@ -1575,6 +1573,7 @@ private:
             result.add_sub_inplace(diff.normal_divide(input) + 1, false);
             divisor_maybe = result * input;
         }
+        result.set_true_len();
         result.neg_sign(is_neg() != input.is_neg());
         return result;
     }
@@ -1614,7 +1613,7 @@ private:
         size_t shift = 0, pos = 0;
         hint::UINT_64 tmp = 0, first_num2 = input.first_int64();
         hint::UINT_64 try_num = 0;
-        while (!dividend.abs_smaller(input))
+        while (dividend.abs_compare(input) >= 0)
         {
             shift = dividend.length() - len2;
             hint::UINT_64 first_num1 = dividend.first_int64();
@@ -1635,11 +1634,6 @@ private:
                 double digit_3 = static_cast<double>(first_num1) * static_cast<double>(hint::HINT_INT32_0X10);
                 tmp = static_cast<hint::UINT_64>(digit_3 / first_num2);
                 sub = input * tmp;
-                if (dividend.abs_compare(sub, shift) < 0)
-                {
-                    sub.add_sub_inplace(input, false);
-                    tmp--;
-                }
                 dividend.add_sub_inplace(sub, false, shift);
             }
             else
@@ -1647,10 +1641,10 @@ private:
                 dividend.add_sub_inplace(input, false, shift);
                 tmp = 1;
             }
-            result.data.array[shift] = static_cast<hint::UINT_32>(tmp & hint::HINT_INT32_0XFF);
+            result.data.array[shift] += static_cast<hint::UINT_32>(tmp & hint::HINT_INT32_0XFF);
         }
-        result.neg_sign(is_neg() != input.is_neg());
         result.set_true_len();
+        result.neg_sign(is_neg() != input.is_neg());
         return result;
     }
     HyperInt newton_sqrt() const
@@ -3202,12 +3196,12 @@ HyperInt HyperInt::operator*(T input) const
 
 inline HyperInt HyperInt::operator/(const HyperInt &input) const
 {
-    if (this == &input || abs_equal(input))
+    if (this == &input)
     {
         return HyperInt(1);
     }
     size_t len1 = length(), len2 = input.length();
-    if (len1 <= 1536 || len2 <= 1536 || (len1 - len2) <= 1536)
+    if (len1 <= 2000 || len2 <= 2000 || (len1 - len2) <= 2000)
     {
         return normal_divide(input);
     }
