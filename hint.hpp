@@ -1562,14 +1562,24 @@ private:
         while (abs_compare(divisor_maybe) >= 0)
         {
             HyperInt diff = *this - divisor_maybe;
-            result.add_sub_inplace(diff.normal_divide(input) + 1, true);
+            diff = diff.normal_divide(input);
+            if (diff.equal_to_z())
+            {
+                diff = HyperInt(1);
+            }
+            result.add_sub_inplace(diff, true);
             divisor_maybe = (result + 1) * input;
         }
         divisor_maybe.add_sub_inplace(input, false);
         while (abs_compare(divisor_maybe) < 0)
         {
             HyperInt diff = divisor_maybe - *this;
-            result.add_sub_inplace(diff.normal_divide(input) + 1, false);
+            diff = diff.normal_divide(input);
+            if (diff.equal_to_z())
+            {
+                diff = HyperInt(1);
+            }
+            result.add_sub_inplace(diff, false);
             divisor_maybe = result * input;
         }
         result.set_true_len();
@@ -1957,36 +1967,36 @@ public:
     //友元函数
     friend HyperInt abs(const HyperInt &input);
     friend void print(const HyperInt &input);
-    template <typename T>
-    friend bool operator>(T input1, const HyperInt &input2);
-    template <typename T>
-    friend bool operator>=(T input1, const HyperInt &input2);
-    template <typename T>
-    friend bool operator<(T input1, const HyperInt &input2);
-    template <typename T>
-    friend bool operator<=(T input1, const HyperInt &input2);
+    // template <typename T>
+    // friend bool operator>(T input1, const HyperInt &input2);
+    // template <typename T>
+    // friend bool operator>=(T input1, const HyperInt &input2);
+    // template <typename T>
+    // friend bool operator<(T input1, const HyperInt &input2);
+    // template <typename T>
+    // friend bool operator<=(T input1, const HyperInt &input2);
 
-    template <typename T>
-    friend HyperInt operator+(T input1, const HyperInt &input2);
-    template <typename T>
-    friend HyperInt operator-(T input1, const HyperInt &input2);
-    template <typename T>
-    friend HyperInt operator*(T input1, const HyperInt &input2);
-    template <typename T>
-    friend HyperInt operator/(T input1, const HyperInt &input2);
-    template <typename T>
-    friend HyperInt operator%(T input1, const HyperInt &input2);
+    // template <typename T>
+    // friend HyperInt operator+(T input1, const HyperInt &input2);
+    // template <typename T>
+    // friend HyperInt operator-(T input1, const HyperInt &input2);
+    // template <typename T>
+    // friend HyperInt operator*(T input1, const HyperInt &input2);
+    // template <typename T>
+    // friend HyperInt operator/(T input1, const HyperInt &input2);
+    // template <typename T>
+    // friend HyperInt operator%(T input1, const HyperInt &input2);
 
-    template <typename T>
-    friend hint::INT_64 &operator+=(T input1, const HyperInt &input2);
-    template <typename T>
-    friend hint::INT_64 &operator-=(T input1, const HyperInt &input2);
-    template <typename T>
-    friend hint::INT_64 &operator*=(T input1, const HyperInt &input2);
-    template <typename T>
-    friend hint::INT_64 &operator/=(T input1, const HyperInt &input2);
-    template <typename T>
-    friend hint::INT_64 &operator%=(T input1, const HyperInt &input2);
+    // template <typename T>
+    // friend hint::INT_64 &operator+=(T input1, const HyperInt &input2);
+    // template <typename T>
+    // friend hint::INT_64 &operator-=(T input1, const HyperInt &input2);
+    // template <typename T>
+    // friend hint::INT_64 &operator*=(T input1, const HyperInt &input2);
+    // template <typename T>
+    // friend hint::INT_64 &operator/=(T input1, const HyperInt &input2);
+    // template <typename T>
+    // friend hint::INT_64 &operator%=(T input1, const HyperInt &input2);
 
     friend std::string to_string(const HyperInt &input);
     friend std::ostream &operator<<(std::ostream &output, const HyperInt &input);
@@ -3568,74 +3578,74 @@ void print(const HyperInt &input) //打印input
 }
 
 template <typename T>
-inline bool operator>(T input1, const HyperInt &input2)
+inline bool operator>(const T &input1, const HyperInt &input2)
 {
     return HyperInt(input1) > input2;
 }
 template <typename T>
-inline bool operator>=(T input1, const HyperInt &input2)
+inline bool operator>=(const T &input1, const HyperInt &input2)
 {
     return HyperInt(input1) >= input2;
 }
 template <typename T>
-inline bool operator<(T input1, const HyperInt &input2)
+inline bool operator<(const T &input1, const HyperInt &input2)
 {
     return HyperInt(input1) < input2;
 }
 template <typename T>
-inline bool operator<=(T input1, const HyperInt &input2)
+inline bool operator<=(const T &input1, const HyperInt &input2)
 {
     return HyperInt(input1) <= input2;
 }
 
 template <typename T>
-inline HyperInt operator+(T input1, const HyperInt &input2)
+inline HyperInt operator+(const T &input1, const HyperInt &input2)
 {
     return HyperInt(input1) + input2;
 }
 template <typename T>
-inline HyperInt operator-(T input1, const HyperInt &input2)
+inline HyperInt operator-(const T &input1, const HyperInt &input2)
 {
     return HyperInt(input1) + input2;
 }
 template <typename T>
-inline HyperInt operator*(T input1, const HyperInt &input2)
+inline HyperInt operator*(const T &input1, const HyperInt &input2)
 {
     return HyperInt(input1) * input2;
 }
 template <typename T>
-inline HyperInt operator/(T input1, const HyperInt &input2)
+inline HyperInt operator/(const T &input1, const HyperInt &input2)
 {
     return HyperInt(input1) / input2;
 }
 template <typename T>
-inline HyperInt operator%(T input1, const HyperInt &input2)
+inline HyperInt operator%(const T &input1, const HyperInt &input2)
 {
     return HyperInt(input1) % input2;
 }
 
 template <typename T>
-inline T &operator+=(T input1, const HyperInt &input2)
+inline T &operator+=(const T &input1, const HyperInt &input2)
 {
     return input1 += input2.to_int64();
 }
 template <typename T>
-inline T &operator-=(T input1, const HyperInt &input2)
+inline T &operator-=(const T &input1, const HyperInt &input2)
 {
     return input1 -= input2.to_int64();
 }
 template <typename T>
-inline T &operator*=(T input1, const HyperInt &input2)
+inline T &operator*=(const T &input1, const HyperInt &input2)
 {
     return input1 *= input2.to_int64();
 }
 template <typename T>
-inline T &operator/=(T input1, const HyperInt &input2)
+inline T &operator/=(const T &input1, const HyperInt &input2)
 {
     return input1 /= input2.to_int64();
 }
 template <typename T>
-inline T &operator%=(T input1, const HyperInt &input2)
+inline T &operator%=(const T &input1, const HyperInt &input2)
 {
     return input1 %= input2.to_int64();
 }
