@@ -1551,10 +1551,6 @@ private:
         }
         HyperInt dividend = input.l_shift(offset * hint::HINT_INT_BIT);
         HyperInt dividend_inv = dividend.inverse();
-        if ((dividend * dividend_inv).length() <= len2 * 2)
-        {
-            ++dividend_inv;
-        }
 
         result = (*this * dividend_inv).r_shift(std::max(len1, len2 * 2) * hint::HINT_INT_BIT);
 
