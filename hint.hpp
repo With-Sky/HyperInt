@@ -855,7 +855,7 @@ namespace hint
             {
                 n = 0;
             }
-            if (n >= 0 && n < base)
+            if (n < base)
             {
                 result += n;
             }
