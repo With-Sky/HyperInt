@@ -2018,8 +2018,8 @@ public:
     HyperInt &operator&=(const HyperInt &input);
     HyperInt &operator^=(const HyperInt &input);
 };
-
-inline void HyperInt::set_true_len() //去除前导0
+//去除前导0
+inline void HyperInt::set_true_len()
 {
     size_t t_len = length();
     while (t_len > 0 && data.array[t_len - 1] == 0)
@@ -2028,7 +2028,8 @@ inline void HyperInt::set_true_len() //去除前导0
     }
     change_length(t_len);
 }
-inline void HyperInt::neg_sign(bool neg) //设置符号是否为负
+//设置符号是否为负
+inline void HyperInt::neg_sign(bool neg)
 {
     if ((!neg) || equal_to_z())
     {
@@ -2039,7 +2040,8 @@ inline void HyperInt::neg_sign(bool neg) //设置符号是否为负
         data.neg_n_len = data.neg_n_len | hint::HINT_SIZE_0X80;
     }
 }
-hint::INT_64 HyperInt::div_mod(hint::UINT_32 divisor) //自身除以divisor的同时返回余数
+//自身除以32位无符号整数divisor的同时返回余数
+hint::INT_64 HyperInt::div_mod(hint::UINT_32 divisor)
 {
     lldiv_t div_tmp;
     if (divisor == 0)
@@ -2063,7 +2065,8 @@ hint::INT_64 HyperInt::div_mod(hint::UINT_32 divisor) //自身除以divisor的�
     set_true_len();
     return rem_num;
 }
-hint::INT_64 HyperInt::mod(hint::UINT_32 divisor) const //返回对divisor的余数
+//返回对32位无符号整数divisor的余数
+hint::INT_64 HyperInt::mod(hint::UINT_32 divisor) const
 {
     //  lldiv_t div_tmp;
     if (divisor == 0)
@@ -2088,7 +2091,8 @@ hint::INT_64 HyperInt::mod(hint::UINT_32 divisor) const //返回对divisor的余
     }
     return rem_num;
 }
-inline HyperInt HyperInt::power(hint::UINT_64 n) const //快速幂
+//返回自身的n次幂
+inline HyperInt HyperInt::power(hint::UINT_64 n) const
 {
     HyperInt tmp(*this), result = HyperInt(1);
     if (!hint::is_odd(n))
@@ -2114,7 +2118,8 @@ inline HyperInt HyperInt::power(hint::UINT_64 n) const //快速幂
     }
     return result;
 }
-inline HyperInt HyperInt::square() const //求自身的平方
+//返回自身的平方
+inline HyperInt HyperInt::square() const
 {
 #ifdef MULTITHREAD
     size_t len = length();
@@ -2128,6 +2133,7 @@ inline HyperInt HyperInt::square() const //求自身的平方
         return hint_square(*this);
     }
 }
+//返回自身的平方根
 inline HyperInt HyperInt::square_root() const
 {
     size_t len = length();
@@ -2144,23 +2150,28 @@ inline HyperInt HyperInt::square_root() const
         return newton_sqrt();
     }
 }
-inline bool HyperInt::is_neg() const //返回符号是否为为负号
+//返回符号是否为为负号
+inline bool HyperInt::is_neg() const
 {
     return (data.neg_n_len & hint::HINT_SIZE_0X80) != 0;
 }
+//返回符号是否为为负号
 inline bool HyperInt::is_neg(const HyperInt &input)
 {
     return input.is_neg();
 }
-inline size_t HyperInt::length() const //返回长度
+//返回长度
+inline size_t HyperInt::length() const
 {
     return data.neg_n_len & hint::HINT_SIZE_0X7F;
 }
-inline size_t HyperInt::size() const //返回分配的数组空间
+//返回分配的数组空间
+inline size_t HyperInt::size() const
 {
     return data.size;
 }
-inline HyperInt HyperInt::split(size_t begin, size_t len) const //返回从下标begi开始长度为len的子数组
+//返回从下标begin开始长度为len的子数组构成的HyperInt
+inline HyperInt HyperInt::split(size_t begin, size_t len) const
 {
     if (len == 0)
     {
@@ -2184,7 +2195,8 @@ inline HyperInt HyperInt::split(size_t begin, size_t len) const //返回从下�
     result.neg_sign(is_neg());
     return result;
 }
-inline hint::INT_64 HyperInt::to_int64() const //转hint::INT_64
+//转64位有符号整数
+inline hint::INT_64 HyperInt::to_int64() const
 {
     if (to_uint64() == hint::HINT_INT64_0X80)
     {
@@ -2200,7 +2212,8 @@ inline hint::INT_64 HyperInt::to_int64() const //转hint::INT_64
     }
     return out;
 }
-inline hint::UINT_64 HyperInt::to_uint64() const //转hint::UINT_64
+//转64位无符号整数
+inline hint::UINT_64 HyperInt::to_uint64() const
 {
     hint::UINT_64 out = 0;
     out = data.array[1];
@@ -2208,7 +2221,8 @@ inline hint::UINT_64 HyperInt::to_uint64() const //转hint::UINT_64
     out += data.array[0];
     return out;
 }
-std::string HyperInt::to_string() const //转string,用10进制表示的字符串
+//转std::string,用10进制表示的字符串
+std::string HyperInt::to_string() const
 {
     if (equal_to_z())
     {
@@ -2273,6 +2287,7 @@ std::string HyperInt::to_string() const //转string,用10进制表示的字符�
     }
     return result_str;
 }
+//输入十进制std::string字符串
 inline void HyperInt::string_in(const std::string &str)
 {
     size_t len = str.size();
@@ -2285,11 +2300,13 @@ inline void HyperInt::string_in(const std::string &str)
         normal_string_in(str);
     }
 }
+//输入十进制字符串
 inline void HyperInt::string_in(const char str[])
 {
     string_in(std::string(str));
 }
-inline void HyperInt::normal_string_in(const std::string &str) //输入十进制字符串
+//输入十进制字符串，慢速算法
+inline void HyperInt::normal_string_in(const std::string &str)
 {
     clear();
     constexpr hint::UINT_64 factor = 1e19;
@@ -2320,6 +2337,7 @@ inline void HyperInt::normal_string_in(const std::string &str) //输入十进制
         neg_sign(true);
     }
 }
+//用十进制字符串转换，快速迭代算法
 void HyperInt::quick_string_in(const std::string &str)
 {
     size_t in_len = str.size();
@@ -2365,7 +2383,8 @@ void HyperInt::quick_string_in(const std::string &str)
     }
     delete[] trans_ary;
 }
-inline void HyperInt::console_in() //从控制台读入十进制值
+//从控制台读入十进制值
+inline void HyperInt::console_in()
 {
     clear();
     char tmp = '0';
@@ -2389,7 +2408,8 @@ inline void HyperInt::console_in() //从控制台读入十进制值
     }
     neg_sign(neg);
 }
-void HyperInt::print_dec() const //向控制台打印十进制值
+//向控制台打印十进制值
+void HyperInt::print_dec() const
 {
     if (equal_to_z())
     {
@@ -2453,7 +2473,8 @@ void HyperInt::print_dec() const //向控制台打印十进制值
     }
     printf("\n");
 }
-inline void HyperInt::print_hex() const //向控制台打印十六进制值
+//向控制台打印十六进制值
+inline void HyperInt::print_hex() const
 {
     if (equal_to_z())
     {
@@ -2474,8 +2495,8 @@ inline void HyperInt::print_hex() const //向控制台打印十六进制值
     }
     printf("\n");
 }
-
-inline HyperInt HyperInt::add_sub(const HyperInt &input, bool is_add) const //基础加减法a=b.add_sub(c,ture)->a=b+c;a=b.add_sub(c,fasle)->a=b-c,(b>c);
+//基础加减法a=b.add_sub(c,ture)->a=b+c;a=b.add_sub(c,fasle)->a=b-c,(b>c)
+inline HyperInt HyperInt::add_sub(const HyperInt &input, bool is_add) const
 {
     HyperInt result;
     size_t len1 = length(), len2 = input.length();
@@ -2526,7 +2547,8 @@ inline HyperInt HyperInt::add_sub(const HyperInt &input, bool is_add) const //�
     result.set_true_len();
     return result;
 }
-inline void HyperInt::add_sub_inplace(const HyperInt &input, bool is_add, const size_t shift) //就地加减 a+=b;a-=b,a加/减去左移位后的b，默认不移位
+//就地加减 a+=b;a-=b,a加/减去左移位后的b，默认不移位
+inline void HyperInt::add_sub_inplace(const HyperInt &input, bool is_add, const size_t shift)
 {
     size_t len1 = length(), len2 = input.length();
     if (is_add)
@@ -2589,7 +2611,8 @@ inline void HyperInt::add_sub_inplace(const HyperInt &input, bool is_add, const 
     }
     set_true_len();
 }
-inline void HyperInt::sub_inplace(const HyperInt &input) //由减数调用,a.sub_inplace(b)->a=b-a;
+//由减数调用,就地相减，a.sub_inplace(b)表示a=b-a;
+inline void HyperInt::sub_inplace(const HyperInt &input)
 {
     size_t len1 = length(), len2 = input.length();
     size_t result_len = std::max(len1, len2);
@@ -2613,7 +2636,8 @@ inline void HyperInt::sub_inplace(const HyperInt &input) //由减数调用,a.sub
     }
     set_true_len();
 }
-inline HyperInt &HyperInt::self_half() //自身右移一位
+//自身左移一位，变成原来的一半
+inline HyperInt &HyperInt::self_half()
 {
     hint::UINT_32 tmp1, tmp2 = 0;
     size_t pos = length();
@@ -2628,7 +2652,8 @@ inline HyperInt &HyperInt::self_half() //自身右移一位
     set_true_len();
     return *this;
 }
-inline HyperInt &HyperInt::self_twice() //自身左移一位
+//自身左移一位，变成原来的二倍
+inline HyperInt &HyperInt::self_twice()
 {
     hint::UINT_64 tmp = 0;
     size_t len = length();
@@ -2647,15 +2672,18 @@ inline HyperInt &HyperInt::self_twice() //自身左移一位
     }
     return *this;
 }
-inline HyperInt HyperInt::half() const //返回右移后的值
+//返回自身的一半，不改变自身的值
+inline HyperInt HyperInt::half() const
 {
     return r_shift(1);
 }
-inline HyperInt HyperInt::twice() const //返回左移后的值
+//返回自身的二倍，不改变自身的值
+inline HyperInt HyperInt::twice() const
 {
     return l_shift(1);
 }
-inline HyperInt HyperInt::r_shift(size_t n) const //右移n位
+//返回二进制右移n位的结果，不改变自身的值
+inline HyperInt HyperInt::r_shift(size_t n) const
 {
     if (n == 0)
     {
@@ -2681,7 +2709,8 @@ inline HyperInt HyperInt::r_shift(size_t n) const //右移n位
     result.set_true_len();
     return result;
 }
-inline HyperInt HyperInt::l_shift(size_t n) const //左移n位
+//返回二进制左移n位的结果，不改变自身的值
+inline HyperInt HyperInt::l_shift(size_t n) const
 {
     if (n == 0)
     {
@@ -2712,7 +2741,8 @@ inline HyperInt HyperInt::l_shift(size_t n) const //左移n位
     }
     return result;
 }
-inline void HyperInt::reset_size(size_t new_size_input) //重新设定长度不小于new_size,1.5倍长度算法,在change_len()之前调用
+//重新设定内部数组长度不小于new_size,1.5倍长度算法
+inline void HyperInt::reset_size(size_t new_size_input)
 {
     size_t size_tmp = generate_size(new_size_input);
     if (data.array == nullptr)
@@ -2728,12 +2758,14 @@ inline void HyperInt::reset_size(size_t new_size_input) //重新设定长度不�
         change_length(std::min(length(), data.size));
     }
 }
-inline HyperInt HyperInt::abs() const //返回绝对值
+//返回绝对值
+inline HyperInt HyperInt::abs() const
 {
     HyperInt result(*this);
     result.neg_sign(false);
     return result;
 }
+//返回内部数组开头的32位无符号整数
 inline hint::UINT_32 HyperInt::first_int32() const
 {
     if (length() >= 1)
@@ -2745,6 +2777,7 @@ inline hint::UINT_32 HyperInt::first_int32() const
         return 0;
     }
 }
+//返回内部数组开头的64位无符号整数
 inline hint::UINT_64 HyperInt::first_int64() const
 {
     if (length() >= 2)
@@ -2759,7 +2792,8 @@ inline hint::UINT_64 HyperInt::first_int64() const
         return static_cast<hint::UINT_64>(first_int32());
     }
 }
-inline hint::INT_32 HyperInt::abs_compare(const HyperInt &input, const hint::hint_size_t shift) const //自身和input左移位shift比较，大于返回1，小于返回-1，等于返回0
+//和input左移位shift比较绝对值，大于返回1，小于返回-1，等于返回0
+inline hint::INT_32 HyperInt::abs_compare(const HyperInt &input, const hint::hint_size_t shift) const
 {
     hint::hint_size_t len1 = static_cast<hint::hint_size_t>(length());
     hint::hint_size_t len2 = static_cast<hint::hint_size_t>(input.length()) + shift;
@@ -2790,23 +2824,28 @@ inline hint::INT_32 HyperInt::abs_compare(const HyperInt &input, const hint::hin
     }
     return 0;
 }
-inline bool HyperInt::abs_larger(const HyperInt &input) const //绝对值是否大于input
+//判断绝对值是否大于input
+inline bool HyperInt::abs_larger(const HyperInt &input) const
 {
     return abs_compare(input) > 0;
 }
-inline bool HyperInt::abs_smaller(const HyperInt &input) const //绝对值是否小于input
+//判断绝对值是否小于input
+inline bool HyperInt::abs_smaller(const HyperInt &input) const
 {
     return abs_compare(input) < 0;
 }
-inline bool HyperInt::abs_equal(const HyperInt &input) const //绝对值是否等于input
+//判断绝对值是否等于input
+inline bool HyperInt::abs_equal(const HyperInt &input) const
 {
     return abs_compare(input) == 0;
 }
-inline bool HyperInt::equal_to_z() const //判定是否为零
+//判断是否为零
+inline bool HyperInt::equal_to_z() const
 {
     return (length() == 0);
 }
-inline bool HyperInt::is_even() const //判断是否为偶数
+//判断是否为偶数
+inline bool HyperInt::is_even() const
 {
     if (length() == 0)
     {
@@ -2814,7 +2853,8 @@ inline bool HyperInt::is_even() const //判断是否为偶数
     }
     return (data.array[0] & 1) == 0;
 }
-inline bool HyperInt::is_odd() const //判断是否为奇数
+//判断是否为奇数
+inline bool HyperInt::is_odd() const
 {
     if (length() == 0)
     {
@@ -2874,7 +2914,7 @@ inline bool HyperInt::operator>(const HyperInt &input) const
 {
     if (is_neg() != input.is_neg())
     {
-        return input.is_neg();
+        return !is_neg();
     }
     else
     {
@@ -2886,7 +2926,7 @@ inline bool HyperInt::operator>(T input) const
 {
     if (is_neg() != hint::is_neg(input))
     {
-        return hint::is_neg(input);
+        return !is_neg();
     }
     else
     {
@@ -2934,36 +2974,31 @@ inline bool HyperInt::operator<=(T input) const
 {
     return !(*this > input);
 }
-
 //算术运算
+
 inline HyperInt HyperInt::operator+(const HyperInt &input) const
 {
     HyperInt result;
-    if (!is_neg() != input.is_neg()) //是否同号
+    if (is_neg() == input.is_neg()) //是否同号
     {
         result = add_sub(input, true);
         result.neg_sign(is_neg());
-        return result;
     }
     else
     {
-        if (abs_equal(input))
-        {
-            return result;
-        }
-        else if (abs_larger(input))
+        const hint::INT_32 cmp = abs_compare(input);
+        if (cmp > 0)
         {
             result = add_sub(input, false);
             result.neg_sign(is_neg());
-            return result;
         }
-        else
+        else if (cmp < 0)
         {
             result = input.add_sub(*this, false);
             result.neg_sign(!is_neg());
-            return result;
         }
     }
+    return result;
 }
 template <typename T>
 inline HyperInt HyperInt::operator+(T input) const
@@ -2982,27 +3017,22 @@ inline HyperInt HyperInt::operator-(const HyperInt &input) const
     {
         result = add_sub(input, true);
         result.neg_sign(is_neg());
-        return result;
     }
     else
     {
-        if (abs_equal(input))
-        {
-            return result;
-        }
-        else if (abs_larger(input))
+        const hint::INT_32 cmp = abs_compare(input);
+        if (cmp > 0)
         {
             result = add_sub(input, false);
             result.neg_sign(is_neg());
-            return result;
         }
-        else
+        else if (cmp < 0)
         {
             result = input.add_sub(*this, false);
             result.neg_sign(!is_neg());
-            return result;
         }
     }
+    return result;
 }
 template <typename T>
 inline HyperInt HyperInt::operator-(T input) const
@@ -3449,13 +3479,15 @@ HyperInt &HyperInt::operator^=(const HyperInt &input)
 }
 
 //友元函数
-HyperInt abs(const HyperInt &input) //返回input的绝对值
+//返回绝对值
+HyperInt abs(const HyperInt &input)
 {
     HyperInt result(input);
     result.neg_sign(false);
     return result;
 }
-void print(const HyperInt &input) //打印input
+//打印输出
+void print(const HyperInt &input)
 {
     if (input.length() <= 1000000)
     {
@@ -3539,11 +3571,12 @@ inline T &operator%=(const T &input1, const HyperInt &input2)
 {
     return input1 %= input2.to_int64();
 }
-
+//转std::string字符串函数
 inline std::string to_string(const HyperInt &input)
 {
     return input.to_string();
 }
+//平方根函数
 inline HyperInt sqrt(const HyperInt &input)
 {
     return input.square_root();
@@ -3560,8 +3593,8 @@ std::istream &operator>>(std::istream &input, HyperInt &output)
     output.string_in(in);
     return input;
 }
-
-HyperInt classic_factorial(hint::UINT_64 end, hint::UINT_64 start = 1) //累乘阶乘,可计算排列数A(n,m) n!/(n-m)!
+//累乘阶乘,也可计算排列数A(n,m) n!/(n-m)!
+HyperInt classic_factorial(hint::UINT_64 end, hint::UINT_64 start = 1)
 {
     HyperInt result = 1;
     if (end < start)
@@ -3575,7 +3608,8 @@ HyperInt classic_factorial(hint::UINT_64 end, hint::UINT_64 start = 1) //累乘�
     result.set_true_len();
     return result;
 }
-HyperInt factorial(hint::UINT_64 end, hint::UINT_64 start = 1, const hint::UINT_32 rec_level = 0) //递归拆分,可计算排列数A(n,m) n!/(n-m)!
+//递归阶乘,也可计算排列数A(n,m) n!/(n-m)!
+HyperInt factorial(hint::UINT_64 end, hint::UINT_64 start = 1, const hint::UINT_32 rec_level = 0)
 {
     if (end < start)
     {
@@ -3606,7 +3640,8 @@ HyperInt factorial(hint::UINT_64 end, hint::UINT_64 start = 1, const hint::UINT_
         return factorial(mid, start, rec_level) * factorial(end, mid + 1, rec_level);
     }
 }
-HyperInt combination(hint::UINT_64 n, hint::UINT_64 m) // return C(n,m)组合数公式n!/((n-m)!m!)
+//返回 C(n,m)即组合数，公式n!/((n-m)!m!)
+HyperInt combination(hint::UINT_64 n, hint::UINT_64 m)
 {
     if (m > hint::half(n))
     {
@@ -3622,6 +3657,7 @@ HyperInt combination(hint::UINT_64 n, hint::UINT_64 m) // return C(n,m)组合数
     }
     return factorial(n, (n - m + 1)) / factorial(m);
 }
+//返回内部数组长度为len的随机数
 HyperInt randHyperInt(size_t len)
 {
     HyperInt result;
