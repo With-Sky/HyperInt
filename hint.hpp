@@ -15,7 +15,7 @@
 #ifndef HINT_HPP
 #define HINT_HPP
 
-//取消对宏MULTITHREAD的注释即可开启多线程
+// 取消对宏MULTITHREAD的注释即可开启多线程
 // #define MULTITHREAD
 
 namespace hint
@@ -289,9 +289,8 @@ namespace hint
     }
     constexpr size_t max_len = 1ull << 20;
     Complex unit[max_len];
-    inline Complex *unit_ary_init()
+    inline Complex *unit_ary_init(Complex unit_ary[])
     {
-        Complex *unit_ary = unit;
         unit_ary[0].real = unit_ary[max_len / 2].real = 1;
         for (size_t i = 1; i < max_len / 2; i++)
         {
@@ -302,7 +301,12 @@ namespace hint
         }
         return unit_ary;
     }
-    const Complex *unit_ptr = unit_ary_init();
+    const Complex *unit_ptr = unit_ary_init(unit);
+    /// @brief
+    /// @param input
+    /// @param fft_len
+    /// @param is_ifft
+    /// @param lut
     void fft(Complex *input, size_t fft_len, const bool is_ifft, const bool lut) //快速傅里叶(逆)变换
     {
         size_t log_n = static_cast<size_t>(log2(fft_len));
@@ -380,14 +384,20 @@ namespace hint
         }
         if (is_ifft) //逆变换需除以n
         {
-            double inv = (1.0 / fft_len);
+            double len = fft_len;
             for (size_t i = 0; i < fft_len; i++)
             {
-                input[i].real *= inv;
-                input[i].imaginary *= inv;
+                input[i].real /= len;
+                input[i].imaginary /= len;
             }
         }
     }
+    /// @brief
+    /// @param input
+    /// @param ntt_len
+    /// @param is_intt
+    /// @param mod
+    /// @param g_root
     void ntt(UINT_64 *input, size_t ntt_len, bool is_intt, const UINT_64 mod = 998244353, UINT_64 g_root = 3) //快速数论变换
     {
         size_t log_n = static_cast<size_t>(log2(ntt_len));
@@ -440,6 +450,7 @@ namespace hint
             }
         }
     }
+
     template <typename T1, typename T2, typename T3>
     void normal_convolution(T1 *const ary1, T2 *const ary2, T3 *const out, size_t len1, size_t len2)
     {
@@ -1606,7 +1617,6 @@ private:
         HyperInt result(result_len, 0);
         result.change_length(result_len);
         HyperInt dividend(*this), sub;
-
         size_t shift = 0;
         hint::UINT_64 tmp = 0, first_num2 = input.first_int64();
         while (dividend.abs_compare(input) >= 0)
@@ -1638,6 +1648,11 @@ private:
                 tmp = 1;
             }
             result.data.array[shift] += static_cast<hint::UINT_32>(tmp & hint::HINT_INT32_0XFF);
+            tmp >>= hint::HINT_INT_BIT;
+            if (tmp > 0)
+            {
+                result.data.array[shift + 1] += tmp;
+            }
         }
         result.set_true_len();
         result.neg_sign(is_neg() != input.is_neg());
@@ -2487,10 +2502,12 @@ inline void HyperInt::print_hex() const
             printf("-");
         }
         size_t pos = length();
-        while (pos)
+        printf("%X ", data.array[pos - 1]);
+        pos--;
+        while (pos > 0)
         {
             pos--;
-            printf("%X ", data.array[pos]);
+            printf("%08X ", data.array[pos]);
         }
     }
     printf("\n");
@@ -3013,6 +3030,10 @@ inline HyperInt HyperInt::operator+() const
 inline HyperInt HyperInt::operator-(const HyperInt &input) const
 {
     HyperInt result;
+    if (this == &input)
+    {
+        return result;
+    }
     if (is_neg() != input.is_neg()) //是否异号
     {
         result = add_sub(input, true);
@@ -3143,10 +3164,10 @@ inline HyperInt HyperInt::operator/(T input) const
 
 inline HyperInt HyperInt::operator%(const HyperInt &input) const
 {
-    HyperInt tmp = *this / input;
-    tmp *= input;
-    tmp.neg_sign(false);
-    HyperInt result = this->abs() - tmp;
+    HyperInt result = *this / input;
+    result *= input;
+    result.neg_sign(false);
+    result = this->abs() - result;
     result.neg_sign(is_neg());
     return result;
 }
@@ -3656,6 +3677,26 @@ HyperInt combination(hint::UINT_64 n, hint::UINT_64 m)
         return HyperInt(1);
     }
     return factorial(n, (n - m + 1)) / factorial(m);
+}
+//返回a,b的最大公因数
+HyperInt gcd(HyperInt a, HyperInt b)
+{
+    a.neg_sign(false);
+    b.neg_sign(false);
+    if (b.equal_to_z())
+    {
+        return a;
+    }
+    HyperInt tmp = b;
+    b = a % b;
+    a = tmp;
+    while (!b.equal_to_z())
+    {
+        tmp = b;
+        b = a % b;
+        a = tmp;
+    }
+    return a;
 }
 //返回内部数组长度为len的随机数
 HyperInt randHyperInt(size_t len)
