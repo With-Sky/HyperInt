@@ -384,7 +384,7 @@ namespace hint
         }
         if (is_ifft) //逆变换需除以n
         {
-            double len = fft_len;
+            double len = static_cast<double>(fft_len);
             for (size_t i = 0; i < fft_len; i++)
             {
                 input[i].real /= len;
@@ -1354,13 +1354,15 @@ private:
 
         HyperInt sub_e, sub_f, sub_g;
 #ifdef MULTITHREAD
-        if (hint::hint_threads > 1)
+        if (hint::hint_threads > 1 && hint::cur_ths < hint::hint_threads * 2)
         {
+            hint::cur_ths += 2;
             std::future<HyperInt> sub_e_th = std::async(hint_mul, sub_a, sub_c);
             std::future<HyperInt> sub_f_th = std::async(hint_mul, sub_b, sub_d);
             sub_g = (sub_a + sub_b) * (sub_c + sub_d);
             sub_e = sub_e_th.get();
             sub_f = sub_f_th.get();
+            hint::cur_ths -= 2;
         }
         else
 #endif
@@ -1466,13 +1468,15 @@ private:
 
         HyperInt sub_ab;
 #ifdef MULTITHREAD
-        if (hint::hint_threads > 1)
+        if (hint::hint_threads > 1 && hint::cur_ths < hint::hint_threads * 2)
         {
+            hint::cur_ths += 2;
             std::future<HyperInt> sub_a_th = std::async(hint_square, sub_a);
             std::future<HyperInt> sub_b_th = std::async(hint_square, sub_b);
             sub_ab = hint_mul(sub_a, sub_b);
             sub_a = sub_a_th.get();
             sub_b = sub_b_th.get();
+            hint::cur_ths -= 2;
         }
         else
 #endif
@@ -1676,7 +1680,7 @@ private:
             tmp >>= hint::HINT_INT_BIT;
             if (tmp > 0)
             {
-                result.data.array[shift + 1] += tmp;
+                result.data.array[shift + 1] += static_cast<hint::UINT_32>(tmp);
             }
         }
         result.set_true_len();
@@ -1879,7 +1883,7 @@ public:
         return *this;
     }
     // HyperInt 移动赋值
-    HyperInt &operator=(HyperInt &&input) noexcept 
+    HyperInt &operator=(HyperInt &&input) noexcept
     {
         if (this != &input)
         {
@@ -1894,26 +1898,26 @@ public:
         return *this;
     }
     // string 赋值
-    HyperInt &operator=(const std::string &input) 
+    HyperInt &operator=(const std::string &input)
     {
         string_in(input);
         return *this;
     }
     //字符串赋值
-    HyperInt &operator=(const char input[]) 
+    HyperInt &operator=(const char input[])
     {
         string_in(input);
         return *this;
     }
     //字符串赋值
-    HyperInt &operator=(char input[]) 
+    HyperInt &operator=(char input[])
     {
         string_in(input);
         return *this;
     }
     // 64位无符号整数赋值
     template <typename T>
-    HyperInt &operator=(T input) 
+    HyperInt &operator=(T input)
     {
         bool neg = hint::is_neg(input);
         hint::UINT_64 tmp = 0;
@@ -2083,7 +2087,7 @@ inline void HyperInt::set_true_len()
     change_length(t_len);
 }
 /// @brief 设置符号是否为负，输入true时为负，false为非负
-/// @param neg 
+/// @param neg
 inline void HyperInt::neg_sign(bool neg)
 {
     if ((!neg) || equal_to_z())
@@ -2096,7 +2100,7 @@ inline void HyperInt::neg_sign(bool neg)
     }
 }
 /// @brief 同时计算商和余数
-/// @param divisor 
+/// @param divisor
 /// @return 自身除以32位无符号整数divisor的同时返回余数
 hint::INT_64 HyperInt::div_mod(hint::UINT_32 divisor)
 {
@@ -2123,7 +2127,7 @@ hint::INT_64 HyperInt::div_mod(hint::UINT_32 divisor)
     return rem_num;
 }
 /// @brief 求余数函数
-/// @param divisor 
+/// @param divisor
 /// @return 对32位无符号整数divisor的余数
 hint::INT_64 HyperInt::mod(hint::UINT_32 divisor) const
 {
@@ -2151,7 +2155,7 @@ hint::INT_64 HyperInt::mod(hint::UINT_32 divisor) const
     return rem_num;
 }
 /// @brief 快速幂
-/// @param n 
+/// @param n
 /// @return 自身的n次幂
 inline HyperInt HyperInt::power(hint::UINT_64 n) const
 {
@@ -2220,7 +2224,7 @@ inline bool HyperInt::is_neg() const
     return (data.neg_n_len & hint::HINT_SIZE_0X80) != 0;
 }
 /// @brief 判断input符号是否为负
-/// @param input 
+/// @param input
 /// @return true为负号，false为非负
 inline bool HyperInt::is_neg(const HyperInt &input)
 {
@@ -2239,8 +2243,8 @@ inline size_t HyperInt::size() const
     return data.size;
 }
 /// @brief 分割数字
-/// @param begin 
-/// @param len 
+/// @param begin
+/// @param len
 /// @return 从下标begin开始长度为len的子数组构成的HyperInt
 inline HyperInt HyperInt::split(size_t begin, size_t len) const
 {
@@ -2362,7 +2366,7 @@ std::string HyperInt::to_string() const
     return result_str;
 }
 /// @brief 输入表示十进制的std::string字符串
-/// @param str 
+/// @param str
 inline void HyperInt::string_in(const std::string &str)
 {
     size_t len = str.size();
@@ -2376,13 +2380,13 @@ inline void HyperInt::string_in(const std::string &str)
     }
 }
 /// @brief 输入十进制字符串
-/// @param str 
+/// @param str
 inline void HyperInt::string_in(const char str[])
 {
     string_in(std::string(str));
 }
 /// @brief 输入十进制字符串，慢速算法
-/// @param str 
+/// @param str
 inline void HyperInt::normal_string_in(const std::string &str)
 {
     clear();
@@ -2415,7 +2419,7 @@ inline void HyperInt::normal_string_in(const std::string &str)
     }
 }
 /// @brief 输入十进制字符串，快速迭代算法
-/// @param str 
+/// @param str
 void HyperInt::quick_string_in(const std::string &str)
 {
     size_t in_len = str.size();
@@ -2575,9 +2579,9 @@ inline void HyperInt::print_hex() const
     }
     printf("\n");
 }
-/// @brief 自身绝对值与输入绝对值的加减 
-/// @param input 
-/// @param is_add 
+/// @brief 自身绝对值与输入绝对值的加减
+/// @param input
+/// @param is_add
 /// @return is_add为true时返回自身绝对值加input绝对值，为false时返回自身绝对值减input绝对值
 inline HyperInt HyperInt::add_sub(const HyperInt &input, bool is_add) const
 {
@@ -2631,9 +2635,9 @@ inline HyperInt HyperInt::add_sub(const HyperInt &input, bool is_add) const
     return result;
 }
 /// @brief 自身绝对值与input左移shift位后的绝对值相加减
-/// @param input 
-/// @param is_add 
-/// @param shift 
+/// @param input
+/// @param is_add
+/// @param shift
 inline void HyperInt::add_sub_inplace(const HyperInt &input, bool is_add, const size_t shift)
 {
     size_t len1 = length(), len2 = input.length();
@@ -2698,7 +2702,7 @@ inline void HyperInt::add_sub_inplace(const HyperInt &input, bool is_add, const 
     set_true_len();
 }
 /// @brief 自身绝对值变为input绝对值减自身绝对值
-/// @param input 
+/// @param input
 inline void HyperInt::sub_inplace(const HyperInt &input)
 {
     size_t len1 = length(), len2 = input.length();
@@ -3615,78 +3619,79 @@ void print(const HyperInt &input)
     }
 }
 
-template <typename T>
-inline bool operator>(const T &input1, const HyperInt &input2)
-{
-    return HyperInt(input1) > input2;
-}
-template <typename T>
-inline bool operator>=(const T &input1, const HyperInt &input2)
-{
-    return HyperInt(input1) >= input2;
-}
-template <typename T>
-inline bool operator<(const T &input1, const HyperInt &input2)
-{
-    return HyperInt(input1) < input2;
-}
-template <typename T>
-inline bool operator<=(const T &input1, const HyperInt &input2)
-{
-    return HyperInt(input1) <= input2;
-}
+// template <typename T>
+// inline bool operator>(const T &input1, const HyperInt &input2)
+// {
+//     return HyperInt(input1) > input2;
+// }
+// template <typename T>
+// inline bool operator>=(const T &input1, const HyperInt &input2)
+// {
+//     return HyperInt(input1) >= input2;
+// }
+// template <typename T>
+// inline bool operator<(const T &input1, const HyperInt &input2)
+// {
+//     return HyperInt(input1) < input2;
+// }
+// template <typename T>
+// inline bool operator<=(const T &input1, const HyperInt &input2)
+// {
+//     return HyperInt(input1) <= input2;
+// }
 
-template <typename T>
-inline HyperInt operator+(const T &input1, const HyperInt &input2)
-{
-    return HyperInt(input1) + input2;
-}
-template <typename T>
-inline HyperInt operator-(const T &input1, const HyperInt &input2)
-{
-    return HyperInt(input1) + input2;
-}
-template <typename T>
-inline HyperInt operator*(const T &input1, const HyperInt &input2)
-{
-    return HyperInt(input1) * input2;
-}
-template <typename T>
-inline HyperInt operator/(const T &input1, const HyperInt &input2)
-{
-    return HyperInt(input1) / input2;
-}
-template <typename T>
-inline HyperInt operator%(const T &input1, const HyperInt &input2)
-{
-    return HyperInt(input1) % input2;
-}
+// template <typename T>
+// inline HyperInt operator+(const T &input1, const HyperInt &input2)
+// {
+//     return HyperInt(input1) + input2;
+// }
+// template <typename T>
+// inline HyperInt operator-(const T &input1, const HyperInt &input2)
+// {
+//     return HyperInt(input1) + input2;
+// }
+// template <typename T>
+// inline HyperInt operator*(const T &input1, const HyperInt &input2)
+// {
+//     return HyperInt(input1) * input2;
+// }
+// template <typename T>
+// inline HyperInt operator/(const T &input1, const HyperInt &input2)
+// {
+//     return HyperInt(input1) / input2;
+// }
+// template <typename T>
+// inline HyperInt operator%(const T &input1, const HyperInt &input2)
+// {
+//     return HyperInt(input1) % input2;
+// }
 
-template <typename T>
-inline T &operator+=(const T &input1, const HyperInt &input2)
-{
-    return input1 += input2.to_int64();
-}
-template <typename T>
-inline T &operator-=(const T &input1, const HyperInt &input2)
-{
-    return input1 -= input2.to_int64();
-}
-template <typename T>
-inline T &operator*=(const T &input1, const HyperInt &input2)
-{
-    return input1 *= input2.to_int64();
-}
-template <typename T>
-inline T &operator/=(const T &input1, const HyperInt &input2)
-{
-    return input1 /= input2.to_int64();
-}
-template <typename T>
-inline T &operator%=(const T &input1, const HyperInt &input2)
-{
-    return input1 %= input2.to_int64();
-}
+// template <typename T>
+// inline T &operator+=(const T &input1, const HyperInt &input2)
+// {
+//     return input1 += input2.to_int64();
+// }
+// template <typename T>
+// inline T &operator-=(const T &input1, const HyperInt &input2)
+// {
+//     return input1 -= input2.to_int64();
+// }
+// template <typename T>
+// inline T &operator*=(const T &input1, const HyperInt &input2)
+// {
+//     return input1 *= input2.to_int64();
+// }
+// template <typename T>
+// inline T &operator/=(const T &input1, const HyperInt &input2)
+// {
+//     return input1 /= input2.to_int64();
+// }
+// template <typename T>
+// inline T &operator%=(const T &input1, const HyperInt &input2)
+// {
+//     return input1 %= input2.to_int64();
+// }
+
 /// @brief 转std::string字符串函数
 /// @param input
 /// @return input用十进制表示的字符串
