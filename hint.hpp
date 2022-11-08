@@ -285,7 +285,12 @@ namespace hint
     template <typename T>
     inline T *ary_realloc(T *ptr, size_t len) //重分配空间
     {
-        return static_cast<T *>(realloc(ptr, len * sizeof(T)));
+        if (len * sizeof(T) < INT64_MAX)
+        {
+            return static_cast<T *>(realloc(ptr, len * sizeof(T)));
+        }
+        throw("realloc error");
+        return nullptr;
     }
     constexpr size_t max_len = 1ull << 20;
     Complex unit[max_len];
@@ -988,83 +993,6 @@ private:
         result.set_true_len();
         return result;
     }
-
-    /// @brief 乘法函数
-    /// @param input1
-    /// @param input2
-    /// @return input1和input2的乘积
-    static HyperInt hint_mul(const HyperInt &input1, const HyperInt &input2)
-    {
-        if (&input1 == &input2)
-        {
-            return hint_square(input1);
-        }
-        else
-        {
-            size_t min_len = std::min(input1.length(), input2.length());
-            size_t sum_len = input1.length() + input2.length();
-            size_t factor = 5, fft_fac = static_cast<size_t>(sum_len * std::ceil(std::log2(sum_len)));
-            if (sum_len <= hint::HINT_FFT_NLUT_MAX)
-            {
-                factor = 3;
-            }
-            else if (sum_len <= hint::HINT_FFT_LUT_MAX)
-            {
-                factor = 5;
-            }
-            else if (sum_len < hint::HINT_NTT_MAX)
-            {
-                factor = 60;
-            }
-            if (min_len <= factor * fft_fac / (1 + sum_len - min_len))
-            {
-                return input1.normal_multiply(input2);
-            }
-            else if (sum_len <= hint::HINT_FFT_LUT_MAX)
-            {
-                return input1.fft_multiply(input2);
-            }
-            else if (sum_len < hint::HINT_NTT_MAX / 16)
-            {
-                return input1.karatsuba_multiply(input2);
-            }
-            else if (sum_len <= hint::HINT_NTT_MAX)
-            {
-                return input1.ntt_multiply(input2);
-            }
-            else
-            {
-                return input1.karatsuba_multiply(input2);
-            }
-        }
-    }
-    /// @brief 平方函数
-    /// @param input
-    /// @return input的平方
-    static HyperInt hint_square(const HyperInt &input)
-    {
-        size_t len = input.length();
-        if (len <= 48)
-        {
-            return input.normal_square();
-        }
-        else if (len <= hint::HINT_FFT_LUT_MAX / 2)
-        {
-            return input.fft_square();
-        }
-        else if (len < hint::HINT_NTT_MAX / 32)
-        {
-            return input.karatsuba_square();
-        }
-        else if (len <= hint::HINT_NTT_MAX / 2)
-        {
-            return input.ntt_square();
-        }
-        else
-        {
-            return input.karatsuba_square();
-        }
-    }
     //基础乘法
     HyperInt normal_multiply(const HyperInt &input) const
     {
@@ -1540,6 +1468,50 @@ private:
         result.neg_sign(false);
         return result;
     }
+    void mul_i32(hint::UINT_32 input, HyperInt &result) const
+    {
+        size_t len = length();
+        result.reset_size(len + 1);
+        result.change_length(len + 1);
+        hint::UINT_64 sum = 0;
+        for (size_t i = 0; i < len; i++)
+        {
+            hint::UINT_32 tmp = data.array[i];
+            sum += (static_cast<hint::UINT_64>(tmp) * input);
+            result.data.array[i] = static_cast<hint::UINT_32>(sum & hint::HINT_INT32_0XFF);
+            sum >>= hint::HINT_INT_BIT;
+        }
+        result.data.array[len] = static_cast<hint::UINT_32>(sum & hint::HINT_INT32_0XFF);
+        result.set_true_len();
+    }
+    void mul_i64(hint::UINT_64 input, HyperInt &result) const
+    {
+        size_t len = length();
+        result.reset_size(len + 2);
+        result.change_length(len + 2);
+
+        const hint::UINT_64 input_num1 = input >> hint::HINT_INT_BIT;
+        const hint::UINT_64 input_num2 = input & hint::HINT_INT32_0XFF;
+        hint::UINT_32 tmp1 = 0, tmp2 = data.array[0];
+        hint::UINT_64 sum1 = 0, sum2 = tmp2 * input_num2;
+        result.data.array[0] = static_cast<hint::UINT_32>(sum2 & hint::HINT_INT32_0XFF);
+        sum2 >>= hint::HINT_INT_BIT;
+        for (size_t pos = 1; pos < len; pos++)
+        {
+            tmp1 = data.array[pos];
+            sum1 += input_num1 * tmp2;
+            sum2 += input_num2 * tmp1 + (sum1 & hint::HINT_INT32_0XFF);
+            hint::UINT_32 sum = static_cast<hint::UINT_32>(sum2 & hint::HINT_INT32_0XFF);
+            result.data.array[pos] = sum;
+            sum1 >>= hint::HINT_INT_BIT;
+            sum2 >>= hint::HINT_INT_BIT;
+            tmp2 = tmp1;
+        }
+        sum1 += input_num1 * tmp2 + sum2;
+        result.data.array[len] = static_cast<hint::UINT_32>(sum1 & hint::HINT_INT32_0XFF);
+        result.data.array[len + 1] = static_cast<hint::UINT_32>(sum1 >> hint::HINT_INT_BIT);
+        result.set_true_len();
+    }
     //求倒数
     HyperInt inverse() const
     {
@@ -1938,7 +1910,82 @@ public:
         set_true_len();
         return *this;
     }
-
+    /// @brief 乘法函数
+    /// @param input1
+    /// @param input2
+    /// @return input1和input2的乘积
+    static HyperInt hint_mul(const HyperInt &input1, const HyperInt &input2)
+    {
+        if (&input1 == &input2)
+        {
+            return hint_square(input1);
+        }
+        else
+        {
+            size_t min_len = std::min(input1.length(), input2.length());
+            size_t sum_len = input1.length() + input2.length();
+            size_t factor = 5, fft_fac = static_cast<size_t>(sum_len * std::ceil(std::log2(sum_len)));
+            if (sum_len <= hint::HINT_FFT_NLUT_MAX)
+            {
+                factor = 3;
+            }
+            else if (sum_len <= hint::HINT_FFT_LUT_MAX)
+            {
+                factor = 5;
+            }
+            else if (sum_len < hint::HINT_NTT_MAX)
+            {
+                factor = 60;
+            }
+            if (min_len <= factor * fft_fac / (1 + sum_len - min_len))
+            {
+                return input1.normal_multiply(input2);
+            }
+            else if (sum_len <= hint::HINT_FFT_LUT_MAX)
+            {
+                return input1.fft_multiply(input2);
+            }
+            else if (sum_len < hint::HINT_NTT_MAX / 16)
+            {
+                return input1.karatsuba_multiply(input2);
+            }
+            else if (sum_len <= hint::HINT_NTT_MAX)
+            {
+                return input1.ntt_multiply(input2);
+            }
+            else
+            {
+                return input1.karatsuba_multiply(input2);
+            }
+        }
+    }
+    /// @brief 平方函数
+    /// @param input
+    /// @return input的平方
+    static HyperInt hint_square(const HyperInt &input)
+    {
+        size_t len = input.length();
+        if (len <= 48)
+        {
+            return input.normal_square();
+        }
+        else if (len <= hint::HINT_FFT_LUT_MAX / 2)
+        {
+            return input.fft_square();
+        }
+        else if (len < hint::HINT_NTT_MAX / 32)
+        {
+            return input.karatsuba_square();
+        }
+        else if (len <= hint::HINT_NTT_MAX / 2)
+        {
+            return input.ntt_square();
+        }
+        else
+        {
+            return input.karatsuba_square();
+        }
+    }
     //基本操作
     void set_true_len();                            //去除前导0
     void neg_sign(bool neg);                        //设置符号是否为负
@@ -2950,6 +2997,10 @@ inline bool HyperInt::abs_smaller(const HyperInt &input) const
 /// @return true为绝对值相等，false为绝对值不相等
 inline bool HyperInt::abs_equal(const HyperInt &input) const
 {
+    if (this == &input)
+    {
+        return true;
+    }
     return abs_compare(input) == 0;
 }
 /// @brief 判断是否为零
@@ -3187,19 +3238,13 @@ HyperInt HyperInt::operator*(T input) const
     {
         return *this;
     }
-    HyperInt result;
     if (equal_to_z() || input == 0)
     {
-        return result;
+        return HyperInt();
     }
+    hint::UINT_64 abs_input = 0;
     bool neg = hint::is_neg(input);
-    size_t len = length();
-    size_t result_len = len + 2;
-    result.reset_size(result_len);
-    result.change_length(result_len);
-    result.neg_sign(is_neg() != neg);
-    hint::UINT_32 tmp = 0, tmp1 = 0, tmp2 = 0;
-    hint::UINT_64 abs_input = 0, sum1 = 0, sum2 = 0;
+    HyperInt result;
     if (neg)
     {
         abs_input = static_cast<hint::UINT_64>(std::abs(static_cast<hint::INT_64>(input)));
@@ -3208,33 +3253,16 @@ HyperInt HyperInt::operator*(T input) const
     {
         abs_input = static_cast<hint::UINT_64>(input);
     }
-    const hint::UINT_64 input_num1 = abs_input & hint::HINT_INT32_0XFF;
-    const hint::UINT_64 input_num2 = abs_input >> hint::HINT_INT_BIT;
-
-    tmp2 = data.array[0];
-    sum1 = tmp2 * input_num1;
-    result.data.array[0] = sum1 & hint::HINT_INT32_0XFF;
-    sum1 >>= hint::HINT_INT_BIT;
-    for (size_t pos = 1; pos < result_len; pos++)
+    if (abs_input > hint::HINT_INT32_0XFF)
     {
-        tmp1 = tmp2;
-        if (pos < len)
-        {
-            tmp2 = data.array[pos];
-        }
-        else
-        {
-            tmp2 = 0;
-        }
-        sum1 += input_num2 * tmp1;
-        tmp = sum1 & hint::HINT_INT32_0XFF;
-        sum2 += input_num1 * tmp2 + tmp;
-        tmp = sum2 & hint::HINT_INT32_0XFF;
-        result.data.array[pos] = tmp;
-        sum1 >>= hint::HINT_INT_BIT;
-        sum2 >>= hint::HINT_INT_BIT;
+        mul_i64(abs_input, result);
     }
-    result.set_true_len();
+    else
+    {
+        abs_input &= hint::HINT_INT32_0XFF;
+        mul_i32(static_cast<hint::UINT_32>(abs_input), result);
+    }
+    result.neg_sign(is_neg() != neg);
     return result;
 }
 
@@ -3336,7 +3364,7 @@ inline HyperInt &HyperInt::operator-=(const HyperInt &input)
 template <typename T>
 inline HyperInt &HyperInt::operator-=(T input)
 {
-    return *this *= HyperInt(input);
+    return *this -= HyperInt(input);
 }
 
 HyperInt &HyperInt::operator*=(const HyperInt &input)
@@ -3363,15 +3391,9 @@ inline HyperInt &HyperInt::operator*=(T input)
         *this = HyperInt();
         return *this;
     }
+    hint::UINT_64 abs_input = 0;
     bool neg = hint::is_neg(input);
-    size_t len = length();
-    size_t result_len = len + 2;
-    reset_size(result_len);
-    change_length(result_len);
     neg_sign(is_neg() != neg);
-    hint::UINT_32 tmp = 0, tmp1 = 0, tmp2 = 0;
-    hint::UINT_64 abs_input = 0, sum1 = 0, sum2 = 0;
-
     if (neg)
     {
         abs_input = static_cast<hint::UINT_64>(std::abs(static_cast<hint::INT_64>(input)));
@@ -3380,38 +3402,25 @@ inline HyperInt &HyperInt::operator*=(T input)
     {
         abs_input = static_cast<hint::UINT_64>(input);
     }
-    const hint::UINT_64 input_num1 = abs_input & hint::HINT_INT32_0XFF;
-    const hint::UINT_64 input_num2 = abs_input >> hint::HINT_INT_BIT;
-
-    tmp2 = data.array[0];
-    sum1 = tmp2 * input_num1;
-    data.array[0] = sum1 & hint::HINT_INT32_0XFF;
-    sum1 >>= hint::HINT_INT_BIT;
-    for (size_t pos = 1; pos < result_len; pos++)
+    if (abs_input > hint::HINT_INT32_0XFF)
     {
-        tmp1 = tmp2;
-        if (pos < len)
-        {
-            tmp2 = data.array[pos];
-        }
-        else
-        {
-            tmp2 = 0;
-        }
-        sum1 += input_num2 * tmp1;
-        tmp = sum1 & hint::HINT_INT32_0XFF;
-        sum2 += input_num1 * tmp2 + tmp;
-        tmp = sum2 & hint::HINT_INT32_0XFF;
-        data.array[pos] = tmp;
-        sum1 >>= hint::HINT_INT_BIT;
-        sum2 >>= hint::HINT_INT_BIT;
+        mul_i64(abs_input, *this);
     }
-    set_true_len();
+    else
+    {
+        abs_input &= hint::HINT_INT32_0XFF;
+        mul_i32(static_cast<hint::UINT_32>(abs_input), *this);
+    }
     return *this;
 }
 
 HyperInt &HyperInt::operator/=(const HyperInt &input)
 {
+    if (this == &input)
+    {
+        *this = HyperInt(1);
+        return *this;
+    }
     *this = *this / input;
     return *this;
 }
@@ -3832,6 +3841,24 @@ HyperInt randHyperInt(size_t len)
         result.data.array[i] = uni(rand_num);
     }
     result.set_true_len();
+    return result;
+}
+/// @brief 生成不少于n位的10进制圆周率
+/// @param n
+/// @return pi乘10的n次方
+HyperInt pi_generator(hint::UINT_32 n)
+{
+    HyperInt result = HyperInt(10).power(n).twice();
+    HyperInt a = result / 3;
+    result += a;
+    hint::UINT_32 i = 2;
+    while (a.abs_compare(HyperInt()) > 0)
+    {
+        a *= i;
+        a /= (i * 2 + 1);
+        result += a;
+        i++;
+    }
     return result;
 }
 #endif
