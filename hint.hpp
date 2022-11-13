@@ -1659,25 +1659,49 @@ private:
         result.neg_sign(is_neg() != input.is_neg());
         return result;
     }
+    HyperInt sqrt_mabye() const
+    {
+        size_t len = length();
+        HyperInt mabye((len + 1) / 2, 0xffffffff);
+        if (hint::is_odd(len) && len > 2)
+        {
+            double tmp = first_int64();
+            tmp *= hint::HINT_INT32_0X10;
+            tmp += data.array[0];
+            hint::UINT_64 guess = static_cast<hint::UINT_64>(std::sqrt(tmp));
+            mabye.data.array[0] = static_cast<hint::UINT_32>(guess & hint::HINT_INT32_0XFF);
+            mabye.data.array[1] = static_cast<hint::UINT_32>(guess >> hint::HINT_INT_BIT);
+        }
+        else
+        {
+            mabye.data.array[0] = static_cast<hint::UINT_32>(std::sqrt(first_int32()));
+        }
+        return mabye;
+    }
     //牛顿迭代法平方根
     HyperInt newton_sqrt() const
     {
         size_t len = length();
-        HyperInt shift_in = l_shift(128);
-        HyperInt result((len + 5) / 2, 0XFFFFFFFF);
+        HyperInt result(sqrt_mabye());
         HyperInt left, right;
-        constexpr size_t times = 320;
+        constexpr size_t times = 1024;
         for (size_t i = 0; i < times; i++)
         {
-            HyperInt tmp = shift_in / result + result;
-            tmp.self_half();
-            if (tmp.abs_compare(result) >= 0)
+            HyperInt next = *this / result + result;
+            next.self_half();
+            if (next.abs_compare(result) >= 0)
             {
-                left = result.r_shift(64);
-                right = tmp.r_shift(64) + 1;
+                left = std::move(result);
+                right = std::move(next);
+                left--;
+                right++;
                 break;
             }
-            result = std::move(tmp);
+            result = std::move(next);
+        }
+        while (abs_compare(left.square()) < 0)
+        {
+            left--;
         }
         while (left.abs_smaller(right))
         {
@@ -2850,6 +2874,7 @@ inline HyperInt HyperInt::r_shift(size_t n) const
         tmp1 = (offset ? (tmp1 << (hint::HINT_INT_BIT - offset)) : 0) + (tmp2 >> offset);
         result.data.array[len] = tmp1;
     }
+    result.neg_sign(is_neg());
     result.set_true_len();
     return result;
 }
@@ -2885,6 +2910,7 @@ inline HyperInt HyperInt::l_shift(size_t n) const
     {
         result.change_length(result.length() - 1);
     }
+    result.neg_sign(is_neg());
     return result;
 }
 /// @brief 重新设定内部数组长度不小于new_size,1.5倍长度算法
