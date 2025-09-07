@@ -3887,4 +3887,18 @@ HyperInt pi_generator(hint::UINT_32 n)
     }
     return result;
 }
+
+HyperInt operator<<(const HyperInt& a, unsigned int n)
+{
+    HyperInt ca(a);
+    return ca.l_shift(n); 
+}
+// 右移 >>
+HyperInt operator>>(const HyperInt& a, unsigned int n)
+{
+    HyperInt ca(a);
+    return ca.r_shift(n);
+}
+​
 #endif
+
