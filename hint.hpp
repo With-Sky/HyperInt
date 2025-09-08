@@ -56,10 +56,10 @@ namespace hint
 #error "Unknown sys bits"
 #endif
     constexpr size_t HINT_FFT_MIN = 128ull;
-    constexpr size_t HINT_FFT_NLUT_MAX = 4096ull;  //不查表的最大长度
+    constexpr size_t HINT_FFT_NLUT_MAX = 4096ull;  // 不查表的最大长度
     constexpr size_t HINT_FFT_LUT_MAX = 131072ull; // 2^17为2分fft结果最大长度
     constexpr size_t HINT_NTT_MAX = 67108864ull;   // 2^26为2分ntt结果最大长度
-    constexpr size_t HINT_NTT_MULTHLEN = 1024ull;  //设置触发多线程的ntt长度
+    constexpr size_t HINT_NTT_MULTHLEN = 1024ull;  // 设置触发多线程的ntt长度
     constexpr double HINT_PI = 3.1415926535897932384626433832795;
     constexpr double HINT_2PI = 6.283185307179586476925286766559;
 
@@ -69,7 +69,7 @@ namespace hint
         hint::INT_64 neg_n_len = 0;
         size_t size = 0;
     };
-    struct Complex //对复数的定义
+    struct Complex // 对复数的定义
     {
         double real = 0, imaginary = 0;
         Complex()
@@ -97,26 +97,26 @@ namespace hint
             imaginary = input.imaginary;
             return *this;
         }
-        Complex operator+(Complex input) const //复数加法
+        Complex operator+(Complex input) const // 复数加法
         {
             return Complex(real + input.real, imaginary + input.imaginary);
         }
-        Complex operator-(Complex input) const //复数减法
+        Complex operator-(Complex input) const // 复数减法
         {
             return Complex(real - input.real, imaginary - input.imaginary);
         }
-        Complex operator*(Complex input) const //复数乘法
+        Complex operator*(Complex input) const // 复数乘法
         {
             return Complex(real * input.real - imaginary * input.imaginary, real * input.imaginary + imaginary * input.real);
         }
-        Complex &operator*=(Complex input) //复数乘法
+        Complex &operator*=(Complex input) // 复数乘法
         {
             double tmp_real = real * input.real - imaginary * input.imaginary;
             imaginary = real * input.imaginary + imaginary * input.real;
             real = tmp_real;
             return *this;
         }
-        Complex operator/(Complex input) const //复数除法
+        Complex operator/(Complex input) const // 复数除法
         {
             double tmp = input.real * input.real + input.imaginary * input.imaginary;
             double re = real * input.real + imaginary * input.imaginary;
@@ -134,7 +134,7 @@ namespace hint
             imaginary = real * input.imaginary + imaginary * input.real;
             real = tmp_real;
         }
-        void console_out() const //打印复数
+        void console_out() const // 打印复数
         {
             std::cout << real;
             if (imaginary < 0)
@@ -177,7 +177,7 @@ namespace hint
         x /= 2;
     }
     template <typename T>
-    constexpr T qpow(T m, hint::UINT_64 n) //模板快速幂
+    constexpr T qpow(T m, hint::UINT_64 n) // 模板快速幂
     {
         T result = 1;
         while (n > 0)
@@ -191,7 +191,7 @@ namespace hint
         }
         return result;
     }
-    constexpr UINT_64 qpow(UINT_64 m, UINT_64 n, UINT_64 mod) //取模快速幂
+    constexpr UINT_64 qpow(UINT_64 m, UINT_64 n, UINT_64 mod) // 取模快速幂
     {
         UINT_64 result = 1;
         while (n > 0)
@@ -205,7 +205,7 @@ namespace hint
         }
         return result;
     }
-    constexpr UINT_64 gcd(UINT_64 a, UINT_64 b) //最大公因数
+    constexpr UINT_64 gcd(UINT_64 a, UINT_64 b) // 最大公因数
     {
         if (b == 0)
         {
@@ -222,7 +222,7 @@ namespace hint
         }
         return a;
     }
-    UINT_64 crt(UINT_64 *mods, UINT_64 *nums, size_t n) //中国剩余定理
+    UINT_64 crt(UINT_64 *mods, UINT_64 *nums, size_t n) // 中国剩余定理
     {
         UINT_64 result = 0, mod_product = 1;
         for (size_t i = 0; i < n; i++)
@@ -240,7 +240,7 @@ namespace hint
     }
     constexpr UINT_64 qcrt(UINT_64 num1, UINT_64 num2,
                            UINT_64 mod1 = 167772161, UINT_64 mod2 = 469762049,
-                           UINT_64 inv1 = 104391568, UINT_64 inv2 = 130489458) //快速计算两模数的中国剩余定理
+                           UINT_64 inv1 = 104391568, UINT_64 inv2 = 130489458) // 快速计算两模数的中国剩余定理
     {
         if (num1 > num2)
         {
@@ -252,12 +252,12 @@ namespace hint
         }
     }
     template <typename T>
-    inline T *ary_copy(T *target, const T *source, size_t len) //模板数组拷贝
+    inline T *ary_copy(T *target, const T *source, size_t len) // 模板数组拷贝
     {
         return static_cast<T *>(std::memcpy(target, source, len * sizeof(T)));
     }
     template <typename T>
-    inline void com_ary_real_copy(Complex *target, const T *source, size_t len) //从其他类型数组拷贝到复数组
+    inline void com_ary_real_copy(Complex *target, const T *source, size_t len) // 从其他类型数组拷贝到复数组
     {
         for (size_t i = 0; i < len; i++)
         {
@@ -265,7 +265,7 @@ namespace hint
         }
     }
     template <typename T>
-    inline void com_ary_img_copy(Complex *target, const T *source, size_t len) //从其他类型数组拷贝到复数组
+    inline void com_ary_img_copy(Complex *target, const T *source, size_t len) // 从其他类型数组拷贝到复数组
     {
         for (size_t i = 0; i < len; i++)
         {
@@ -273,17 +273,17 @@ namespace hint
         }
     }
     template <typename T>
-    inline void ary_calloc(T *&ptr, size_t len) //模版数组分配内存且清零
+    inline void ary_calloc(T *&ptr, size_t len) // 模版数组分配内存且清零
     {
         ptr = static_cast<T *>(calloc(len, sizeof(T)));
     }
     template <typename T>
-    inline void ary_clr(T *ptr, size_t len) //模版数组清零
+    inline void ary_clr(T *ptr, size_t len) // 模版数组清零
     {
         memset(ptr, 0, len * sizeof(T));
     }
     template <typename T>
-    inline T *ary_realloc(T *ptr, size_t len) //重分配空间
+    inline T *ary_realloc(T *ptr, size_t len) // 重分配空间
     {
         if (len * sizeof(T) < INT64_MAX)
         {
@@ -312,7 +312,7 @@ namespace hint
     /// @param fft_len
     /// @param is_ifft
     /// @param lut
-    void fft(Complex *input, size_t fft_len, const bool is_ifft, const bool lut) //快速傅里叶(逆)变换
+    void fft(Complex *input, size_t fft_len, const bool is_ifft, const bool lut) // 快速傅里叶(逆)变换
     {
         size_t log_n = static_cast<size_t>(log2(fft_len));
         fft_len = 1ull << log_n;
@@ -324,7 +324,7 @@ namespace hint
         rev[0] = 0;
         for (size_t i = 1; i < fft_len; i++)
         {
-            rev[i] = (rev[i >> 1] >> 1) | ((i & 1) << (log_n - 1)); //求rev交换数组
+            rev[i] = (rev[i >> 1] >> 1) | ((i & 1) << (log_n - 1)); // 求rev交换数组
         }
         for (size_t i = 0; i < fft_len; i++)
         {
@@ -387,7 +387,7 @@ namespace hint
                 }
             }
         }
-        if (is_ifft) //逆变换需除以n
+        if (is_ifft) // 逆变换需除以n
         {
             double len = static_cast<double>(fft_len);
             for (size_t i = 0; i < fft_len; i++)
@@ -403,7 +403,7 @@ namespace hint
     /// @param is_intt
     /// @param mod
     /// @param g_root
-    void ntt(UINT_64 *input, size_t ntt_len, bool is_intt, const UINT_64 mod = 998244353, UINT_64 g_root = 3) //快速数论变换
+    void ntt(UINT_64 *input, size_t ntt_len, bool is_intt, const UINT_64 mod = 998244353, UINT_64 g_root = 3) // 快速数论变换
     {
         size_t log_n = static_cast<size_t>(log2(ntt_len));
         size_t *rev = new size_t[ntt_len];
@@ -468,13 +468,13 @@ namespace hint
             }
         }
     }
-    inline void fft_convolution(Complex *const fft_ary1, Complex *const fft_ary2, Complex *const out, size_t fft_len, const bool lut = false) //快速傅里叶变换卷积分
+    inline void fft_convolution(Complex *const fft_ary1, Complex *const fft_ary2, Complex *const out, size_t fft_len, const bool lut = false) // 快速傅里叶变换卷积分
     {
 #ifdef MULTITHREAD
         bool multi_threads = hint_threads >= 2 && fft_len >= 2 * HINT_FFT_NLUT_MAX;
         if (multi_threads)
         {
-            std::future<void> fft_th = std::async(fft, fft_ary1, fft_len, false, lut); //快速傅里叶变换
+            std::future<void> fft_th = std::async(fft, fft_ary1, fft_len, false, lut); // 快速傅里叶变换
             if (fft_ary1 != fft_ary2)
             {
                 fft(fft_ary2, fft_len, false, lut);
@@ -484,20 +484,20 @@ namespace hint
         else
 #endif
         {
-            fft(fft_ary1, fft_len, false, lut); //快速傅里叶变换
+            fft(fft_ary1, fft_len, false, lut); // 快速傅里叶变换
             if (fft_ary1 != fft_ary2)
             {
                 fft(fft_ary2, fft_len, false, lut);
             }
-            //每一位相乘
+            // 每一位相乘
         }
         for (size_t i = 0; i < fft_len; i++)
         {
             out[i] = fft_ary1[i] * fft_ary2[i];
         }
-        fft(out, fft_len, true, lut); //逆变换
+        fft(out, fft_len, true, lut); // 逆变换
     }
-    void ntt_convolution(UINT_64 *const ntt_ary1, UINT_64 *const ntt_ary2, UINT_64 *const out, size_t ntt_len) //数论变换卷积分
+    void ntt_convolution(UINT_64 *const ntt_ary1, UINT_64 *const ntt_ary2, UINT_64 *const out, size_t ntt_len) // 数论变换卷积分
     {
         constexpr UINT_64 mod1 = 2013265921, mod2 = 2281701377;
         constexpr UINT_64 root1 = 31, root2 = 3;
@@ -519,7 +519,7 @@ namespace hint
             for (size_t i = 0; i < ntt_len; i++)
             {
                 ary1[i] = ary1[i] * ary2[i];
-            } //每一位相乘
+            } // 每一位相乘
         };
 #ifdef MULTITHREAD
         bool multi_threads = hint_threads >= 2 && ntt_len > HINT_NTT_MULTHLEN;
@@ -538,7 +538,7 @@ namespace hint
             ntt_th2.wait();
 
             mul_func(ntt_ary1, ntt_ary2);
-            mul_func(ntt_ary3, ntt_ary4); //每一位相乘
+            mul_func(ntt_ary3, ntt_ary4); // 每一位相乘
 
             std::future<void> intt_th = std::async(ntt, ntt_ary1, ntt_len, true, mod1, root1);
             ntt(ntt_ary3, ntt_len, true, mod2, root2);
@@ -547,18 +547,18 @@ namespace hint
         else
 #endif
         {
-            ntt(ntt_ary1, ntt_len, false, mod1, root1); //快速数论变换
+            ntt(ntt_ary1, ntt_len, false, mod1, root1); // 快速数论变换
             ntt(ntt_ary3, ntt_len, false, mod2, root2);
             if (ntt_ary1 != ntt_ary2)
             {
-                ntt(ntt_ary2, ntt_len, false, mod1, root1); //快速数论变换
+                ntt(ntt_ary2, ntt_len, false, mod1, root1); // 快速数论变换
                 ntt(ntt_ary4, ntt_len, false, mod2, root2);
             }
 
             mul_func(ntt_ary1, ntt_ary2);
-            mul_func(ntt_ary3, ntt_ary4); //每一位相乘
+            mul_func(ntt_ary3, ntt_ary4); // 每一位相乘
 
-            ntt(ntt_ary1, ntt_len, true, mod1, root1); //逆变换
+            ntt(ntt_ary1, ntt_len, true, mod1, root1); // 逆变换
             ntt(ntt_ary3, ntt_len, true, mod2, root2);
         }
         constexpr UINT_64 inv1 = qpow(mod1, mod2 - 2, mod2);
@@ -566,11 +566,11 @@ namespace hint
         for (size_t i = 0; i < ntt_len; i++)
         {
             out[i] = qcrt(ntt_ary1[i], ntt_ary3[i], mod1, mod2, inv1, inv2);
-        } //使用中国剩余定理变换
+        } // 使用中国剩余定理变换
         delete[] ntt_ary3;
     }
     template <typename T1, typename T2, typename T3>
-    void trans_add(const T1 *in1, const T2 *in2, T3 *out, size_t len1, size_t len2, const INT_64 base = 100) //可计算多项式的加法,默认为100进制
+    void trans_add(const T1 *in1, const T2 *in2, T3 *out, size_t len1, size_t len2, const INT_64 base = 100) // 可计算多项式的加法,默认为100进制
     {
         size_t result_len = std::max(len1, len2);
         INT_64 tmp = 0;
@@ -595,7 +595,7 @@ namespace hint
         }
     }
     template <typename T1, typename T2, typename T3>
-    void trans_mul(const T1 *in1, const T2 *in2, T3 *out, size_t len1, size_t len2, const INT_64 base = 100) //计算多项式的乘法
+    void trans_mul(const T1 *in1, const T2 *in2, T3 *out, size_t len1, size_t len2, const INT_64 base = 100) // 计算多项式的乘法
     {
         size_t out_len = len1 + len2;
         while (len1 > 0 && in1[len1 - 1] == 0)
@@ -619,7 +619,7 @@ namespace hint
                 out[pos] = static_cast<T3>(tmp % base);
                 tmp /= base;
                 pos++;
-            } //整理每一位
+            } // 整理每一位
             delete[] con_result;
         }
         else if (out_len <= 2097152)
@@ -638,7 +638,7 @@ namespace hint
                 out[pos] = static_cast<T3>(tmp % base);
                 tmp /= base;
                 pos++;
-            } //整理每一位
+            } // 整理每一位
             delete[] fft_in1;
         }
         else if (out_len <= 1073741824)
@@ -665,7 +665,7 @@ namespace hint
                 out[pos] = static_cast<T2>(tmp % base);
                 tmp /= base;
                 pos++;
-            } //整理每一位
+            } // 整理每一位
             delete[] ntt_ary1;
         }
         else
@@ -674,7 +674,7 @@ namespace hint
         }
     }
     template <typename T1, typename T2>
-    void trans_square(const T1 *in, T2 *out, size_t len, const INT_64 base = 100) //平方
+    void trans_square(const T1 *in, T2 *out, size_t len, const INT_64 base = 100) // 平方
     {
         while (len > 0 && in[len - 1] == 0)
         {
@@ -694,7 +694,7 @@ namespace hint
                 out[pos] = static_cast<T2>(tmp % base);
                 tmp /= base;
                 pos++;
-            } //整理每一位
+            } // 整理每一位
             delete[] con_result;
         }
         else if (out_len <= 2097152)
@@ -711,7 +711,7 @@ namespace hint
                 out[pos] = static_cast<T2>(tmp % base);
                 tmp /= base;
                 pos++;
-            } //整理每一位
+            } // 整理每一位
             delete[] fft_ary;
         }
         else if (out_len <= 1073741824)
@@ -732,7 +732,7 @@ namespace hint
                 out[pos] = static_cast<T2>(tmp % base);
                 tmp /= base;
                 pos++;
-            } //整理每一位
+            } // 整理每一位
             delete[] ntt_ary;
         }
         else
@@ -883,7 +883,7 @@ class HyperInt
 {
 private:
     hint::h_int data;
-    constexpr void change_length(size_t new_length) //设置新的长度
+    constexpr void change_length(size_t new_length) // 设置新的长度
     {
         if (new_length > data.size)
         {
@@ -895,7 +895,7 @@ private:
         }
         data.neg_n_len = (data.neg_n_len & hint::HINT_SIZE_0X80) | new_length;
     }
-    constexpr size_t generate_size(size_t new_size_input) const //生成1.5倍数组空间
+    constexpr size_t generate_size(size_t new_size_input) const // 生成1.5倍数组空间
     {
         if (new_size_input >= hint::HINT_SIZE_0X7F)
         {
@@ -917,18 +917,18 @@ private:
             return size1;
         }
     }
-    //清空
+    // 清空
     void clear()
     {
         neg_sign(false);
         hint::ary_clr(data.array, data.size);
     }
-    //填充相同的元素
+    // 填充相同的元素
     void fill_element(hint::UINT_32 element)
     {
         std::fill(data.array, data.array + length(), element);
     }
-    //快速左移一位,只能操作大小为2^n的数
+    // 快速左移一位,只能操作大小为2^n的数
     void quick_self_twice()
     {
         size_t len_tmp = length();
@@ -953,7 +953,7 @@ private:
             }
         }
     }
-    //快速右移一位,只能操作大小为2^n的数
+    // 快速右移一位,只能操作大小为2^n的数
     void quick_self_half()
     {
         size_t len_tmp = length();
@@ -977,7 +977,7 @@ private:
             }
         }
     }
-    //将自身的二倍返回
+    // 将自身的二倍返回
     HyperInt quick_twice() const
     {
         HyperInt result(*this);
@@ -985,7 +985,7 @@ private:
         result.set_true_len();
         return result;
     }
-    //将自身的一半返回
+    // 将自身的一半返回
     HyperInt quick_half() const
     {
         HyperInt result(*this);
@@ -993,7 +993,7 @@ private:
         result.set_true_len();
         return result;
     }
-    //基础乘法
+    // 基础乘法
     HyperInt normal_multiply(const HyperInt &input) const
     {
         if (equal_to_z() || input.equal_to_z())
@@ -1001,34 +1001,37 @@ private:
             return HyperInt();
         }
         size_t len1 = length(), len2 = input.length();
-        if (len1 <= 2)
-        {
-            return input * first_int64();
-        }
-        else if (len2 <= 2)
-        {
-            return *this * input.first_int64();
-        }
         size_t result_len = len1 + len2;
         HyperInt result(result_len, 0);
         result.change_length(result_len);
-        hint::UINT_64 tmp = 0, sum = 0;
-        for (size_t pos1 = 0; pos1 < len1; pos1++)
+        if (len1 <= 2)
         {
-            for (size_t pos2 = 0; pos2 < len2; pos2++)
+            result = input * first_int64();
+        }
+        else if (len2 <= 2)
+        {
+            result = *this * input.first_int64();
+        }
+        else
+        {
+            hint::UINT_64 tmp = 0, sum = 0;
+            for (size_t pos1 = 0; pos1 < len1; pos1++)
             {
-                tmp = static_cast<hint::UINT_64>(data.array[pos1]) * input.data.array[pos2];
-                for (size_t pos3 = pos1 + pos2; pos3 < result_len; pos3++)
+                for (size_t pos2 = 0; pos2 < len2; pos2++)
                 {
-                    sum = tmp + result.data.array[pos3];
-                    result.data.array[pos3] = static_cast<hint::UINT_32>(sum & hint::HINT_INT32_0XFF);
-                    if ((sum >> hint::HINT_INT_BIT) > 0)
+                    tmp = static_cast<hint::UINT_64>(data.array[pos1]) * input.data.array[pos2];
+                    for (size_t pos3 = pos1 + pos2; pos3 < result_len; pos3++)
                     {
-                        tmp = sum >> hint::HINT_INT_BIT;
-                    }
-                    else
-                    {
-                        break;
+                        sum = tmp + result.data.array[pos3];
+                        result.data.array[pos3] = static_cast<hint::UINT_32>(sum & hint::HINT_INT32_0XFF);
+                        if ((sum >> hint::HINT_INT_BIT) > 0)
+                        {
+                            tmp = sum >> hint::HINT_INT_BIT;
+                        }
+                        else
+                        {
+                            break;
+                        }
                     }
                 }
             }
@@ -1037,7 +1040,7 @@ private:
         result.neg_sign(is_neg() != input.is_neg());
         return result;
     }
-    //基础平方
+    // 基础平方
     HyperInt normal_square() const
     {
         if (equal_to_z())
@@ -1073,7 +1076,7 @@ private:
         result.neg_sign(false);
         return result;
     }
-    //快速傅里叶变换乘法
+    // 快速傅里叶变换乘法
     HyperInt fft_multiply(const HyperInt &input) const
     {
         if (equal_to_z() || input.equal_to_z())
@@ -1088,7 +1091,7 @@ private:
         hint::Complex *fft_ary1 = new hint::Complex[fft_len];
         // hint::Complex *fft_ary2 = nullptr;
 
-        //每一位分解为短整数后存入复数组
+        // 每一位分解为短整数后存入复数组
         hint::UINT_16 *ary1_16 = reinterpret_cast<hint::UINT_16 *>(data.array);
         hint::UINT_16 *ary2_16 = reinterpret_cast<hint::UINT_16 *>(input.data.array);
         size_t data_len1 = len1 * 2;
@@ -1107,7 +1110,7 @@ private:
             tmp += static_cast<hint::UINT_64>(fft_ary1[i].imaginary / 2 + 0.5);
             ary_16[i] = static_cast<hint::UINT_16>(tmp & hint::HINT_INT16_0XFF);
             tmp >>= hint::HINT_SHORT_BIT;
-        } //整理每一位
+        } // 整理每一位
 
         delete[] fft_ary1;
         result.set_true_len();
@@ -1129,12 +1132,12 @@ private:
 
         hint::Complex *fft_ary = new hint::Complex[fft_len];
 
-        //每一位分解为短整数后存入复数组
+        // 每一位分解为短整数后存入复数组
         hint::UINT_16 *ary_16 = reinterpret_cast<hint::UINT_16 *>(data.array);
         size_t data_len = len * 2;
 
         hint::com_ary_real_copy(fft_ary, ary_16, data_len);
-        hint::fft_convolution(fft_ary, fft_ary, fft_ary, fft_len, result_len > hint::HINT_FFT_NLUT_MAX); //卷积
+        hint::fft_convolution(fft_ary, fft_ary, fft_ary, fft_len, result_len > hint::HINT_FFT_NLUT_MAX); // 卷积
 
         hint::UINT_64 tmp = 0;
         ary_16 = reinterpret_cast<hint::UINT_16 *>(result.data.array);
@@ -1144,14 +1147,14 @@ private:
             tmp += static_cast<hint::UINT_64>(fft_ary[i].real + 0.5);
             ary_16[i] = static_cast<hint::UINT_16>(tmp & hint::HINT_INT16_0XFF);
             tmp >>= hint::HINT_SHORT_BIT;
-        } //整理每一位
+        } // 整理每一位
 
         delete[] fft_ary;
         result.set_true_len();
         result.neg_sign(false);
         return result;
     }
-    //快速数论变换乘法
+    // 快速数论变换乘法
     HyperInt ntt_multiply(const HyperInt &input) const
     {
         if (equal_to_z() || input.equal_to_z())
@@ -1169,7 +1172,7 @@ private:
         hint::ary_clr(ntt_ary1, ntt_len * 2);
         // hint::ary_clr(ntt_ary2, ntt_len);
 
-        hint::UINT_16 *ary1_16 = reinterpret_cast<hint::UINT_16 *>(data.array); //每一位分解为短整数后存入数组
+        hint::UINT_16 *ary1_16 = reinterpret_cast<hint::UINT_16 *>(data.array); // 每一位分解为短整数后存入数组
         hint::UINT_16 *ary2_16 = reinterpret_cast<hint::UINT_16 *>(input.data.array);
         size_t data_len1 = len1 * 2;
         size_t data_len2 = len2 * 2;
@@ -1193,14 +1196,14 @@ private:
             ary_16[i] = static_cast<hint::UINT_16>(tmp & hint::HINT_INT16_0XFF);
             tmp >>= hint::HINT_SHORT_BIT;
         }
-        //整理每一位
+        // 整理每一位
         delete[] ntt_ary1;
         // delete[] ntt_ary2;
         result.set_true_len();
         result.neg_sign(is_neg() != input.is_neg());
         return result;
     }
-    //快速数论变换平方
+    // 快速数论变换平方
     HyperInt ntt_square() const
     {
         if (equal_to_z())
@@ -1215,7 +1218,7 @@ private:
         hint::UINT_64 *ntt_ary = new hint::UINT_64[ntt_len];
         hint::ary_clr(ntt_ary, ntt_len);
 
-        //每一位分解为短整数后存入数组
+        // 每一位分解为短整数后存入数组
         hint::UINT_16 *ary_16 = reinterpret_cast<hint::UINT_16 *>(data.array);
         size_t data_len = len * 2;
         for (size_t i = 0; i < data_len; i++)
@@ -1233,7 +1236,7 @@ private:
             tmp += ntt_ary[i];
             ary_16[i] = static_cast<hint::UINT_16>(tmp & hint::HINT_INT16_0XFF);
             tmp >>= hint::HINT_SHORT_BIT;
-        } //整理每一位
+        } // 整理每一位
         delete[] ntt_ary;
         result.set_true_len();
         result.neg_sign(false);
@@ -1512,7 +1515,7 @@ private:
         result.data.array[len + 1] = static_cast<hint::UINT_32>(sum1 >> hint::HINT_INT_BIT);
         result.set_true_len();
     }
-    //求倒数
+    // 求倒数
     HyperInt inverse() const
     {
         size_t len = length();
@@ -1535,7 +1538,7 @@ private:
         dual.add_sub_inplace(sq, false);
         return dual;
     }
-    //牛顿迭代法除法
+    // 牛顿迭代法除法
     HyperInt newton_divide(const HyperInt &input) const
     {
         assert(!input.equal_to_z());
@@ -1587,7 +1590,7 @@ private:
         result.neg_sign(is_neg() != input.is_neg());
         return result;
     }
-    //模拟手算的除法
+    // 模拟手算的除法
     HyperInt normal_divide(const HyperInt &input) const
     {
         assert(!input.equal_to_z());
@@ -1678,7 +1681,7 @@ private:
         }
         return mabye;
     }
-    //牛顿迭代法平方根
+    // 牛顿迭代法平方根
     HyperInt newton_sqrt() const
     {
         size_t len = length();
@@ -1726,7 +1729,7 @@ private:
         }
         return left;
     }
-    //二分法平方根
+    // 二分法平方根
     HyperInt normal_sqrt() const
     {
         size_t len = length();
@@ -1786,7 +1789,7 @@ public:
         change_length(0);
         data.array[1] = data.array[0] = 0;
     }
-    //填充new_length个num进行构造
+    // 填充new_length个num进行构造
     HyperInt(size_t new_length, hint::UINT_32 num)
     {
         data.size = generate_size(new_length);
@@ -1832,17 +1835,17 @@ public:
     {
         string_in(input);
     }
-    //字符串构造
+    // 字符串构造
     HyperInt(char input[])
     {
         string_in(input);
     }
-    //字符串构造
+    // 字符串构造
     HyperInt(const char input[])
     {
         string_in(input);
     }
-    //通用构造
+    // 通用构造
     template <typename T>
     HyperInt(T input)
     {
@@ -1899,13 +1902,13 @@ public:
         string_in(input);
         return *this;
     }
-    //字符串赋值
+    // 字符串赋值
     HyperInt &operator=(const char input[])
     {
         string_in(input);
         return *this;
     }
-    //字符串赋值
+    // 字符串赋值
     HyperInt &operator=(char input[])
     {
         string_in(input);
@@ -2010,54 +2013,54 @@ public:
             return input.karatsuba_square();
         }
     }
-    //基本操作
-    void set_true_len();                            //去除前导0
-    void neg_sign(bool neg);                        //设置符号是否为负
-    hint::INT_64 div_mod(hint::UINT_32 divisor);    //自身除以divisor的同时返回余数
-    hint::INT_64 mod(hint::UINT_32 divisor) const;  //返回对divisor的余数
-    HyperInt power(hint::UINT_64 n) const;          //快速幂
-    HyperInt square() const;                        //求自身的平方
-    HyperInt square_root() const;                   //求自身的平方根
-    bool is_neg() const;                            //返回符号是否为为负号
-    static bool is_neg(const HyperInt &input);      //返回符号是否为为负号
-    size_t length() const;                          //返回长度
-    size_t size() const;                            //返回分配的数组空间
-    HyperInt split(size_t begin, size_t len) const; //返回从下标begi开始长度为len的子数组
-    hint::INT_64 to_int64() const;                  //转hint::INT_64
-    hint::UINT_64 to_uint64() const;                //转hint::UINT_64
-    std::string to_string() const;                  //转string,用10进制表示的字符串
-    void string_in(const std::string &str);         //由十进制string字符串输入
-    void string_in(const char str[]);               //由十进制C风格字符串输入
-    void normal_string_in(const std::string &str);  //输入十进制字符串，普通算法
-    void quick_string_in(const std::string &str);   //输入十进制字符串，快速算法
-    void console_in();                              //从控制台读入十进制值
-    void print_dec() const;                         //向控制台打印十进制值
-    void print_hex() const;                         //向控制台打印十六进制值
+    // 基本操作
+    void set_true_len();                            // 去除前导0
+    void neg_sign(bool neg);                        // 设置符号是否为负
+    hint::INT_64 div_mod(hint::UINT_32 divisor);    // 自身除以divisor的同时返回余数
+    hint::INT_64 mod(hint::UINT_32 divisor) const;  // 返回对divisor的余数
+    HyperInt power(hint::UINT_64 n) const;          // 快速幂
+    HyperInt square() const;                        // 求自身的平方
+    HyperInt square_root() const;                   // 求自身的平方根
+    bool is_neg() const;                            // 返回符号是否为为负号
+    static bool is_neg(const HyperInt &input);      // 返回符号是否为为负号
+    size_t length() const;                          // 返回长度
+    size_t size() const;                            // 返回分配的数组空间
+    HyperInt split(size_t begin, size_t len) const; // 返回从下标begi开始长度为len的子数组
+    hint::INT_64 to_int64() const;                  // 转hint::INT_64
+    hint::UINT_64 to_uint64() const;                // 转hint::UINT_64
+    std::string to_string() const;                  // 转string,用10进制表示的字符串
+    void string_in(const std::string &str);         // 由十进制string字符串输入
+    void string_in(const char str[]);               // 由十进制C风格字符串输入
+    void normal_string_in(const std::string &str);  // 输入十进制字符串，普通算法
+    void quick_string_in(const std::string &str);   // 输入十进制字符串，快速算法
+    void console_in();                              // 从控制台读入十进制值
+    void print_dec() const;                         // 向控制台打印十进制值
+    void print_hex() const;                         // 向控制台打印十六进制值
 
-    HyperInt add_sub(const HyperInt &input, bool is_add) const;                       //基础加减法a=b.add_sub(c,ture)->a=b+c;a=b.add_sub(c,fasle)->a=b-c,(b>c);
-    void add_sub_inplace(const HyperInt &input, bool is_add, const size_t shift = 0); //就地加减 a+=b;a-=b,a加/减去左移位后的b，默认不移位
-    void sub_inplace(const HyperInt &input);                                          //由减数调用,a.sub_inplace(b)->a=b-a;
+    HyperInt add_sub(const HyperInt &input, bool is_add) const;                       // 基础加减法a=b.add_sub(c,ture)->a=b+c;a=b.add_sub(c,fasle)->a=b-c,(b>c);
+    void add_sub_inplace(const HyperInt &input, bool is_add, const size_t shift = 0); // 就地加减 a+=b;a-=b,a加/减去左移位后的b，默认不移位
+    void sub_inplace(const HyperInt &input);                                          // 由减数调用,a.sub_inplace(b)->a=b-a;
 
-    HyperInt &self_half();                  //自身右移一位
-    HyperInt &self_twice();                 //自身左移一位
-    HyperInt half() const;                  //返回右移一位后的值
-    HyperInt twice() const;                 //返回左移一位后的值
-    HyperInt r_shift(size_t n) const;       //右移n位
-    HyperInt l_shift(size_t n) const;       //左移n位
-    void reset_size(size_t new_size_input); //重新设定长度不小于new_size,1.5倍长度算法,在change_len()之前调用
-    HyperInt abs() const;                   //返回绝对值
-    hint::UINT_32 first_int32() const;      //返回开头一个元素转32位整数的结果
-    hint::UINT_64 first_int64() const;      //返回开头两个元素转32位整数的结果
+    HyperInt &self_half();                  // 自身右移一位
+    HyperInt &self_twice();                 // 自身左移一位
+    HyperInt half() const;                  // 返回右移一位后的值
+    HyperInt twice() const;                 // 返回左移一位后的值
+    HyperInt r_shift(size_t n) const;       // 右移n位
+    HyperInt l_shift(size_t n) const;       // 左移n位
+    void reset_size(size_t new_size_input); // 重新设定长度不小于new_size,1.5倍长度算法,在change_len()之前调用
+    HyperInt abs() const;                   // 返回绝对值
+    hint::UINT_32 first_int32() const;      // 返回开头一个元素转32位整数的结果
+    hint::UINT_64 first_int64() const;      // 返回开头两个元素转32位整数的结果
 
-    hint::INT_32 abs_compare(const HyperInt &input, const hint::INT_64 shift = 0) const; //自身和input移位shift比较，大于返回1，小于返回-1，等于返回0
-    bool abs_larger(const HyperInt &input) const;                                        //绝对值是否大于input
-    bool abs_smaller(const HyperInt &input) const;                                       //绝对值是否小于input
-    bool abs_equal(const HyperInt &input) const;                                         //绝对值是否等于input
-    bool equal_to_z() const;                                                             //判定是否为零
-    bool is_even() const;                                                                //判断是否为偶数
-    bool is_odd() const;                                                                 //判断是否为奇数
+    hint::INT_32 abs_compare(const HyperInt &input, const hint::INT_64 shift = 0) const; // 自身和input移位shift比较，大于返回1，小于返回-1，等于返回0
+    bool abs_larger(const HyperInt &input) const;                                        // 绝对值是否大于input
+    bool abs_smaller(const HyperInt &input) const;                                       // 绝对值是否小于input
+    bool abs_equal(const HyperInt &input) const;                                         // 绝对值是否等于input
+    bool equal_to_z() const;                                                             // 判定是否为零
+    bool is_even() const;                                                                // 判断是否为偶数
+    bool is_odd() const;                                                                 // 判断是否为奇数
 
-    //逻辑运算
+    // 逻辑运算
     bool operator==(const HyperInt &input) const;
     template <typename T>
     bool operator==(T input) const;
@@ -2082,7 +2085,7 @@ public:
     template <typename T>
     bool operator<=(T input) const;
 
-    //友元函数
+    // 友元函数
     friend HyperInt abs(const HyperInt &input);
     friend void print(const HyperInt &input);
 
@@ -2090,8 +2093,8 @@ public:
     friend std::ostream &operator<<(std::ostream &output, const HyperInt &input);
     friend std::istream &operator>>(std::istream &input, HyperInt &output);
 
-    friend HyperInt randHyperInt(size_t len); //生成长度为len的随机数
-    //算术运算
+    friend HyperInt randHyperInt(size_t len); // 生成长度为len的随机数
+    // 算术运算
 
     HyperInt operator+(const HyperInt &input) const;
     template <typename T>
@@ -2186,9 +2189,9 @@ hint::INT_64 HyperInt::div_mod(hint::UINT_32 divisor)
     {
         pos--;
         tmp = (last_rem << hint::HINT_INT_BIT) + data.array[pos];
-        div_tmp = lldiv(tmp, divisor);                              //一次性得到商和余数
-        data.array[pos] = static_cast<hint::UINT_32>(div_tmp.quot); //当前数为变商
-        last_rem = div_tmp.rem;                                     //得到余数
+        div_tmp = lldiv(tmp, divisor);                              // 一次性得到商和余数
+        data.array[pos] = static_cast<hint::UINT_32>(div_tmp.quot); // 当前数为变商
+        last_rem = div_tmp.rem;                                     // 得到余数
     }
     tmp = (last_rem << hint::HINT_INT_BIT) + data.array[0];
     div_tmp = lldiv(tmp, divisor);
@@ -2213,8 +2216,8 @@ hint::INT_64 HyperInt::mod(hint::UINT_32 divisor) const
     {
         pos--;
         tmp = (last_rem << hint::HINT_INT_BIT) + data.array[pos];
-        auto div_tmp = lldiv(tmp, divisor); //一次性得到商和余数
-        last_rem = div_tmp.rem;             //得到余数
+        auto div_tmp = lldiv(tmp, divisor); // 一次性得到商和余数
+        last_rem = div_tmp.rem;             // 得到余数
     }
     tmp = (last_rem << hint::HINT_INT_BIT) + data.array[0];
     auto div_tmp = lldiv(tmp, divisor);
@@ -2416,18 +2419,18 @@ std::string HyperInt::to_string() const
     {
         size_t result_len = in_len * 4;
         size_t ary_len = 2ull << static_cast<hint::UINT_16>(std::ceil(std::log2(result_len)));
-        hint::UINT_8 *result = new hint::UINT_8[ary_len]; //结果数组
+        hint::UINT_8 *result = new hint::UINT_8[ary_len]; // 结果数组
         memcpy(result, data.array, in_len * sizeof(*data.array));
         while (result[result_len - 1] == 0)
         {
             result_len--;
         }
 
-        hint::base_conversion(result, result_len, hint::HINT_INT8_0X10, 100); //进制转换
+        hint::base_conversion(result, result_len, hint::HINT_INT8_0X10, 100); // 进制转换
 
         result_str += std::to_string(static_cast<hint::UINT_32>(result[result_len - 1]));
         result_len--;
-        while (result_len > 0) //整理每一位将100进制转为十进制
+        while (result_len > 0) // 整理每一位将100进制转为十进制
         {
             result_len--;
             result_str += hint::ui64to_string(static_cast<hint::UINT_64>(result[result_len]), 2);
@@ -2603,7 +2606,7 @@ void HyperInt::print_dec() const
     {
         size_t result_len = in_len * 4;
         size_t ary_len = 2ull << static_cast<hint::UINT_16>(std::ceil(std::log2(result_len)));
-        hint::UINT_8 *result = new hint::UINT_8[ary_len]; //结果数组
+        hint::UINT_8 *result = new hint::UINT_8[ary_len]; // 结果数组
         memcpy(result, data.array, in_len * sizeof(*data.array));
         while (result[result_len - 1] == 0)
         {
@@ -3166,12 +3169,12 @@ inline bool HyperInt::operator<=(T input) const
 {
     return !(*this > input);
 }
-//算术运算
+// 算术运算
 
 inline HyperInt HyperInt::operator+(const HyperInt &input) const
 {
     HyperInt result;
-    if (is_neg() == input.is_neg()) //是否同号
+    if (is_neg() == input.is_neg()) // 是否同号
     {
         result = add_sub(input, true);
         result.neg_sign(is_neg());
@@ -3209,7 +3212,7 @@ inline HyperInt HyperInt::operator-(const HyperInt &input) const
     {
         return result;
     }
-    if (is_neg() != input.is_neg()) //是否异号
+    if (is_neg() != input.is_neg()) // 是否异号
     {
         result = add_sub(input, true);
         result.neg_sign(is_neg());
@@ -3331,7 +3334,7 @@ inline HyperInt HyperInt::operator%(T input) const
 
 inline HyperInt &HyperInt::operator+=(const HyperInt &input)
 {
-    if (!is_neg() != input.is_neg()) //是否同号
+    if (!is_neg() != input.is_neg()) // 是否同号
     {
         add_sub_inplace(input, true);
         neg_sign(is_neg());
@@ -3363,7 +3366,7 @@ inline HyperInt &HyperInt::operator+=(T input)
 
 inline HyperInt &HyperInt::operator-=(const HyperInt &input)
 {
-    if (is_neg() != input.is_neg()) //是否异号
+    if (is_neg() != input.is_neg()) // 是否异号
     {
         add_sub_inplace(input, true);
         neg_sign(is_neg());
@@ -3888,17 +3891,16 @@ HyperInt pi_generator(hint::UINT_32 n)
     return result;
 }
 
-HyperInt operator<<(const HyperInt& a, unsigned int n)
+HyperInt operator<<(const HyperInt &a, unsigned int n)
 {
     HyperInt ca(a);
-    return ca.l_shift(n); 
+    return ca.l_shift(n);
 }
 // 右移 >>
-HyperInt operator>>(const HyperInt& a, unsigned int n)
+HyperInt operator>>(const HyperInt &a, unsigned int n)
 {
     HyperInt ca(a);
     return ca.r_shift(n);
 }
-​
-#endif
 
+#endif
